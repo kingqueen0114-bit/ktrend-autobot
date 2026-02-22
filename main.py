@@ -35,7 +35,12 @@ def main(request):
 
     action = data.get('action', '')
     if action == 'fetch_trends':
-        return trigger_daily_fetch(request)
+        try:
+            return trigger_daily_fetch(request)
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            return f"Error Traceback:\n{tb}", 500
     if action == 'stats_report':
         return trigger_stats_report(request)
     if action == 'progress_report':
