@@ -125,7 +125,7 @@ class TrendFetcher:
             text = "".join(part.get("text", "") for part in parts)
 
             text = text.strip()
-
+            
             # Clean markdown code blocks if present
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
