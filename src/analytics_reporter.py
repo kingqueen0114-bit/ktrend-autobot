@@ -16,6 +16,7 @@ from google.analytics.data_v1beta.types import (
     Metric,
     RunReportRequest,
 )
+import google.auth
 from google.oauth2 import service_account
 
 # LINE通知用
@@ -25,17 +26,19 @@ from src.notifier import Notifier
 class AnalyticsReporter:
     """Google Analytics 4 データを取得して分析"""
 
-    def __init__(self, property_id: str, credentials_path: str):
+    def __init__(self, property_id: str, credentials_path: Optional[str] = None):
         """
         Args:
             property_id: GA4 プロパティID (例: "123456789")
-            credentials_path: サービスアカウントJSONファイルのパス
+            credentials_path: サービスアカウントJSONファイルのパス。Noneの場合はGCPデフォルト認証を使用。
         """
         self.property_id = property_id
-        self.credentials = service_account.Credentials.from_service_account_file(
-            credentials_path
-        )
-        self.client = BetaAnalyticsDataClient(credentials=self.credentials)
+        if credentials_path and os.path.exists(credentials_path):
+            self.credentials = service_account.Credentials.from_service_account_file(credentials_path)
+            self.client = BetaAnalyticsDataClient(credentials=self.credentials)
+        else:
+            self.credentials, _ = google.auth.default()
+            self.client = BetaAnalyticsDataClient(credentials=self.credentials)
 
     def get_daily_report(self, date: Optional[str] = None) -> Dict:
         """

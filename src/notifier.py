@@ -295,9 +295,10 @@ class Notifier:
             postback_data += f"&wp_post_id={wp_post_id}"
 
         # Pre-calculate URIs for buttons
-        edit_uri = f"https://asia-northeast1-k-trend-autobot.cloudfunctions.net/view-draft?id={draft_id}"
+        app_url = os.environ.get("APP_URL", "https://ktrend-autobot-nnfhuwwfiq-an.a.run.app")
+        edit_uri = f"{app_url}/view-draft?id={draft_id}"
         # Always use view-draft for preview (no WordPress login required)
-        wp_confirm_uri = f"https://asia-northeast1-k-trend-autobot.cloudfunctions.net/view-draft?id={draft_id}&tab=preview"
+        wp_confirm_uri = f"{app_url}/view-draft?id={draft_id}&tab=preview"
 
         # VERSION CHECK: 2026-02-11-14:15 - Button type should be URI
         print(f"🔍 NOTIFIER VERSION: 2026-02-11-14:15 | edit_uri={edit_uri[:50]}")

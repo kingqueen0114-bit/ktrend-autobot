@@ -66,12 +66,6 @@ class TrendFetcher:
         self.search_api_key = os.environ.get("GOOGLE_CUSTOM_SEARCH_API_KEY")
         self.search_engine_id = os.environ.get("GOOGLE_CSE_ID")
 
-        if genai and api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-        else:
-            self.model = None
-
     def _search_google(self, query: str, num_results: int = 5) -> List[Dict]:
         """
         Search Google using Custom Search API.
@@ -88,13 +82,12 @@ class TrendFetcher:
         return self._search_with_gemini(query)
 
     def _search_with_gemini(self, query: str) -> List[Dict]:
-        """Fallback search using Gemini when Google Custom Search fails."""
-        if not self.model:
-            print("⚠️ Gemini model not available for fallback search")
+        """Fallback search using Gemini REST API when Google Custom Search fails."""
+        if not self.api_key:
+            print("⚠️ Gemini API key not available for fallback search")
             return []
 
         try:
-            import json
             prompt = f"""あなたは韓国トレンド情報の専門家です。「{query}」に関する最新のトレンド情報を3つ提供してください。
 以下の条件を厳守してください：
 1. ただの事実やニュースの要約ではなく、SNSでのユーザーの反応や、他ブランドとのコラボ、市場の動きなど「なぜ今これが流行る兆しなのか」という流行のサイン（兆し）を必ず含めること。
@@ -111,8 +104,28 @@ class TrendFetcher:
 ]
 - linkはダミーURLで構いません"""
 
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "tools": [{"googleSearch": {}}],
+                "generationConfig": {
+                    "temperature": 0.7
+                }
+            }
+
+            response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+            
+            if response.status_code != 200:
+                print(f"⚠️ Gemini API Error Details: {response.text}")
+            response.raise_for_status()
+
+            data = response.json()
+            text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+
+            if not text:
+                raise ValueError("Empty response text from Gemini API")
+
+            text = text.strip()
 
             # Extract JSON from response robustly
             json_match = re.search(r'\[[\s\S]*\]', text)
@@ -124,7 +137,7 @@ class TrendFetcher:
             print(f"✅ Gemini fallback: {len(results)} trends generated")
             return results
         except Exception as e:
-            error_msg = f"Gemini fallback failed: {type(e).__name__}: {str(e)}"
+            error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {str(e)}"
             print(f"⚠️ {error_msg}")
             raise RuntimeError(error_msg)
 
