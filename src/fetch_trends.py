@@ -7,6 +7,7 @@ import os
 import requests
 import json
 import random
+import re
 from typing import List, Dict, Optional
 from datetime import datetime
 
@@ -115,19 +116,19 @@ class TrendFetcher:
             response = self.model.generate_content(prompt, tools=tool)
             text = response.text.strip()
 
-            # Extract JSON from response
-            if '```' in text:
-                text = text.split('```')[1]
-                if text.startswith('json'):
-                    text = text[4:]
-                text = text.strip()
-
-            results = json.loads(text)
+            # Extract JSON from response robustly
+            json_match = re.search(r'\[[\s\S]*\]', text)
+            if json_match:
+                json_str = json_match.group()
+                results = json.loads(json_str)
+            else:
+                raise ValueError(f"No JSON array found in response: {text[:100]}...")
             print(f"✅ Gemini fallback: {len(results)} trends generated")
             return results
         except Exception as e:
-            print(f"⚠️ Gemini fallback also failed: {e}")
-            return []
+            error_msg = f"Gemini fallback failed: {type(e).__name__}: {str(e)}"
+            print(f"⚠️ {error_msg}")
+            raise RuntimeError(error_msg)
 
     def _extract_image(self, search_result: Dict) -> Optional[str]:
         """

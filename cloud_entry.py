@@ -74,7 +74,12 @@ def main(request):
     action = data.get('action', '')
 
     if action == 'fetch_trends':
-        return trigger_daily_fetch(request)
+        try:
+            return trigger_daily_fetch(request)
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return f"Error: {error_details}", 500
     if action == 'stats_report':
         return trigger_stats_report(request)
     if action == 'progress_report':
