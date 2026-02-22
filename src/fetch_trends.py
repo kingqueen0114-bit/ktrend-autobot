@@ -111,9 +111,7 @@ class TrendFetcher:
 ]
 - linkはダミーURLで構いません"""
 
-            # Use Google Search tool to get the latest news
-            tool = {"google_search": {}} if hasattr(genai, "protos") else "google_search"
-            response = self.model.generate_content(prompt, tools=tool)
+            response = self.model.generate_content(prompt)
             text = response.text.strip()
 
             # Extract JSON from response robustly
