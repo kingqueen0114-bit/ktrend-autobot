@@ -91,8 +91,9 @@ def trigger_daily_fetch(request):
 
             # Generate SNS
             sns_content = generator.generate_content(target)
-            # Generate CMS
-            cms_content = generator.generate_cms_article(target)
+            # Generate CMS (with Signs Context)
+            trend_sign_context = target.get('snippet', '')
+            cms_content = generator.generate_cms_article(target, trend_sign_context=trend_sign_context)
 
             # Quality check
             quality = check_article_quality(cms_content, target)
@@ -101,14 +102,23 @@ def trigger_daily_fetch(request):
                 for warn in quality['warnings'][:3]:
                     print(f"   ⚠️ {warn}")
 
-            # Auto-rewrite if quality is too low
+            # Auto-rewrite if quality is too low (Strict Self-Correction Loop)
             rewritten = False
-            if not quality['passed'] and quality['warnings']:
-                print(f"🔄 Auto-rewriting article due to low quality score...")
-                cms_content = generator.rewrite_article(cms_content, quality['warnings'], target)
+            rewrite_attempts = 0
+            max_rewrites = 3
+            
+            while not quality['passed'] and rewrite_attempts < max_rewrites:
+                rewrite_attempts += 1
+                print(f"🔄 Auto-rewriting article (Attempt {rewrite_attempts}/{max_rewrites}) due to rule violations...")
+                cms_content = generator.rewrite_article(cms_content, quality['warnings'], target, trend_sign_context=trend_sign_context)
+                
                 # Re-check quality after rewrite
                 quality = check_article_quality(cms_content, target)
-                print(f"📊 After rewrite: {quality['score']}/100 ({'PASS' if quality['passed'] else 'WARN'})")
+                print(f"📊 After rewrite {rewrite_attempts}: {quality['score']}/100 ({'PASS' if quality['passed'] else 'WARN'})")
+                
+                if quality['warnings']:
+                    for warn in quality['warnings'][:3]:
+                        print(f"   ⚠️ {warn}")
                 rewritten = True
 
             # Save to WordPress as draft first
