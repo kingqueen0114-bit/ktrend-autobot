@@ -53,7 +53,8 @@ class ContentGenerator:
             chunks = grounding.get("groundingChunks", [])
             print(f"🔍 AI successfully used Search Grounding: Retrieved {len(chunks)} sources")
         
-        text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        text = "".join(part.get("text", "") for part in parts)
         if not text:
             raise ValueError("Empty response text from Gemini API")
             
