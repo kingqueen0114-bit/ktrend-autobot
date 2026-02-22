@@ -53,7 +53,7 @@ class ContentGenerator:
         if grounding:
             chunks = grounding.get("groundingChunks", [])
             log_event("GROUNDING_SUCCESS", f"Search Grounding retrieved {len(chunks)} sources", source_count=len(chunks))
-        
+
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         text = "".join(part.get("text", "") for part in parts)
         if not text:
