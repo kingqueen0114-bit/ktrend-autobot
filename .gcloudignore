@@ -1,0 +1,36 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Environment (use .env.yaml instead)
+.env
+.env.example
+
+# Large files
+output/google-cloud-sdk/
+output/google-cloud-cli-*.tar.gz
+output/articles.json
+
+# Test files
+test_*.py
+test_output/
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Scripts (not needed in Cloud Functions)
+*.sh
+
+# MySQL/Nginx configs
+mysql/
+nginx/
+
+# PHP output files (for WordPress, not for Cloud Functions)
+output/*.php

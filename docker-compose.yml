@@ -1,0 +1,130 @@
+version: '3.8'
+
+# K-TREND TIMES WordPress 環境
+# Google Cloud Compute Engine (Ubuntu 22.04) 用
+
+services:
+  # ============================================
+  # Nginx リバースプロキシ (SSL対応)
+  # ============================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ktrend-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - wordpress_data:/var/www/html:ro
+    depends_on:
+      - wordpress
+    restart: unless-stopped
+    networks:
+      - ktrend-network
+
+  # ============================================
+  # WordPress (PHP-FPM版)
+  # ============================================
+  wordpress:
+    image: wordpress:6.4-fpm-alpine
+    container_name: ktrend-wordpress
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_USER: ${DB_USER:-ktrend_user}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-change_this_password}
+      WORDPRESS_DB_NAME: ${DB_NAME:-ktrend_db}
+      WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX:-wp_}
+      # セキュリティキー (本番環境では必ず変更)
+      WORDPRESS_AUTH_KEY: ${AUTH_KEY:-put-your-unique-phrase-here}
+      WORDPRESS_SECURE_AUTH_KEY: ${SECURE_AUTH_KEY:-put-your-unique-phrase-here}
+      WORDPRESS_LOGGED_IN_KEY: ${LOGGED_IN_KEY:-put-your-unique-phrase-here}
+      WORDPRESS_NONCE_KEY: ${NONCE_KEY:-put-your-unique-phrase-here}
+      WORDPRESS_AUTH_SALT: ${AUTH_SALT:-put-your-unique-phrase-here}
+      WORDPRESS_SECURE_AUTH_SALT: ${SECURE_AUTH_SALT:-put-your-unique-phrase-here}
+      WORDPRESS_LOGGED_IN_SALT: ${LOGGED_IN_SALT:-put-your-unique-phrase-here}
+      WORDPRESS_NONCE_SALT: ${NONCE_SALT:-put-your-unique-phrase-here}
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ktrend-network
+
+  # ============================================
+  # MySQL 8.0 データベース
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: ktrend-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_change_me}
+      MYSQL_DATABASE: ${DB_NAME:-ktrend_db}
+      MYSQL_USER: ${DB_USER:-ktrend_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_this_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/conf.d:/etc/mysql/conf.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password_change_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ktrend-network
+
+  # ============================================
+  # Certbot (Let's Encrypt SSL証明書)
+  # ============================================
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ktrend-certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+    networks:
+      - ktrend-network
+
+  # ============================================
+  # phpMyAdmin (開発/管理用 - 本番では削除推奨)
+  # ============================================
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: ktrend-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    networks:
+      - ktrend-network
+    profiles:
+      - dev
+
+# ============================================
+# ボリューム (永続化データ)
+# ============================================
+volumes:
+  wordpress_data:
+    driver: local
+  mysql_data:
+    driver: local
+
+# ============================================
+# ネットワーク
+# ============================================
+networks:
+  ktrend-network:
+    driver: bridge

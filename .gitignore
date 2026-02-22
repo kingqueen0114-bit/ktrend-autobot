@@ -1,0 +1,37 @@
+# Environment & Secrets
+.env
+.env.yaml
+.env.deploy.yaml
+sa-key.json
+**/service-account-key.json
+**/sa-key.json
+analytics-key.json
+*-key.json
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Google Cloud SDK (large binary)
+output/google-cloud-sdk/
+output/google-cloud-cli-*.tar.gz
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Test outputs
+test_output/
+
+# Agent files
+.gemini/
+.claude/
+
+# Temporary and Log files
+.gcloud_temp/
+test_logs/
