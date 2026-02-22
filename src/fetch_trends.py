@@ -111,8 +111,8 @@ class TrendFetcher:
 ]
 - linkはダミーURLで構いません"""
 
-            # Use Google Search Retrieval tool to get the latest news
-            tool = {"google_search_retrieval": {}} if hasattr(genai, "protos") else "google_search_retrieval"
+            # Use Google Search tool to get the latest news
+            tool = {"google_search": {}} if hasattr(genai, "protos") else "google_search"
             response = self.model.generate_content(prompt, tools=tool)
             text = response.text.strip()
 
