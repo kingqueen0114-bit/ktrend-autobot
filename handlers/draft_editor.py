@@ -230,9 +230,9 @@ def view_draft(request):
 
     # Escape content for JavaScript
     import html as html_module
-    title_escaped = html_module.escape(cms_content.get('title', ''))
-    body_escaped = html_module.escape(cms_content.get('body', ''))
-    meta_escaped = html_module.escape(cms_content.get('meta_description', ''))
+    title_escaped = html_module.escape((cms_content.get('title') or '') if isinstance(cms_content.get('title'), str) else '')
+    body_escaped = html_module.escape((cms_content.get('body') or '') if isinstance(cms_content.get('body'), str) else '')
+    meta_escaped = html_module.escape((cms_content.get('meta_description') or '') if isinstance(cms_content.get('meta_description'), str) else '')
 
     # Generate HTML with enhanced editor
     html = f"""
@@ -380,7 +380,7 @@ def view_draft(request):
 
                         <label style="margin-top: 20px;">アーティストタグ（カンマ区切り）</label>
                         <input type="text" id="artist_tags" name="artist_tags"
-                               value="{', '.join(trend_source.get('artist_tags', []))}"
+                               value="{', '.join((trend_source.get('artist_tags') or []) if isinstance(trend_source.get('artist_tags'), list) else [])}"
                                placeholder="例: BTS, BLACKPINK, NewJeans"
                                oninput="updateTagPreview()">
                         <p class="tag-input-hint">複数のタグはカンマ（,）で区切ってください。WordPressのタグとして登録されます。</p>
@@ -680,15 +680,14 @@ def view_article_list(request):
     """
     tab = request.args.get('tab', 'pending')
     storage = StorageManager()
-    from google.cloud.firestore_v1.base_query import FieldFilter
     
     # Query logic based on tab
     if tab == 'pending':
-        query = storage.db.collection(storage.collection_name).where(filter=FieldFilter('status', 'in', ['draft', 'pending']))
+        query = storage.db.collection(storage.collection_name).where('status', 'in', ['draft', 'pending'])
     elif tab == 'published':
-        query = storage.db.collection(storage.collection_name).where(filter=FieldFilter('status', 'in', ['approved', 'published']))
+        query = storage.db.collection(storage.collection_name).where('status', 'in', ['approved', 'published'])
     else:
-        query = storage.db.collection(storage.collection_name).where(filter=FieldFilter('status', 'in', ['draft', 'pending']))
+        query = storage.db.collection(storage.collection_name).where('status', 'in', ['draft', 'pending'])
     
     # Sort and execute
     query = query.order_by('created_at', direction='DESCENDING').limit(50)
