@@ -38,11 +38,9 @@ def main(request):
         try:
             return trigger_daily_fetch(request)
         except Exception as e:
-            import traceback, os
+            import traceback
             tb = traceback.format_exc()
-            key = os.environ.get("GEMINI_API_KEY", "NOT_FOUND")
-            safe_key = f"...{key[-4:]}" if len(key) > 4 else key
-            return f"Key loaded: {safe_key}\n\nError Traceback:\n{tb}", 500
+            return f"Error Traceback:\n{tb}", 500
     if action == 'stats_report':
         return trigger_stats_report(request)
     if action == 'progress_report':
