@@ -94,12 +94,13 @@ class ContentGenerator:
             "luna_post_b": f"{emoji} これ絶対チェックして！{title}\n\nマジで話題になってる🔥\n\n#韓国トレンド",
         }
 
-    def generate_cms_article(self, trend: Dict) -> Dict:
+    def generate_cms_article(self, trend: Dict, trend_sign_context: str = "") -> Dict:
         """
         Generate a CMS article for a trend.
 
         Args:
             trend: Trend dictionary
+            trend_sign_context: Context about the trend signs to inject
 
         Returns:
             Dictionary with article content (title, body, meta_description, etc.)
@@ -115,7 +116,7 @@ class ContentGenerator:
         if not self.model:
             return self._generate_fallback_article(title, snippet, category)
 
-        prompt = build_article_prompt(title, snippet, category, link)
+        prompt = build_article_prompt(title, snippet, category, link, trend_sign_context)
 
         try:
             response = self.model.generate_content(prompt)
@@ -162,7 +163,7 @@ class ContentGenerator:
             "category": category,
         }
 
-    def rewrite_article(self, article: Dict, warnings: List[str], trend: Dict) -> Dict:
+    def rewrite_article(self, article: Dict, warnings: List[str], trend: Dict, trend_sign_context: str = "") -> Dict:
         """
         Rewrite an article to address quality warnings.
 
@@ -170,6 +171,7 @@ class ContentGenerator:
             article: Original article dictionary
             warnings: List of quality warnings
             trend: Original trend data
+            trend_sign_context: Optional sign context
 
         Returns:
             Rewritten article dictionary
@@ -184,11 +186,19 @@ class ContentGenerator:
 以下の記事を改善してください。
 
 現在のタイトル: {current_title}
+元のトレンド概要: {trend.get('snippet')}
+検知されたサイン・兆し: {trend_sign_context}
 現在の本文:
 {current_body}
 
-改善が必要な点:
+改善が必要な点（絶対に修正すること）:
 {chr(10).join(f'- {w}' for w in warnings)}
+
+必須ルール:
+- 文字数は必ず1000文字以上を満たすこと
+- 分析した「流行のサイン（兆し）」を必ず本文に含めること
+- トレンド情報（{trend.get('title', '')}）に関する具体的な一次情報を入れること
+- research_report にこの選定理由とサインの考察を記述すること
 
 出力形式（JSON）:
 {{
@@ -246,12 +256,21 @@ def check_article_quality(article: Dict, trend: Dict) -> Dict:
         warnings.append("タイトルが長すぎます（80文字以下推奨）")
         score -= 10
 
-    # Check body length
-    if len(body) < 800:
-        warnings.append("本文が短すぎます（最低800文字、1000文字以上必須）")
-        score -= 40
-    elif len(body) < 1000:
-        warnings.append("本文が短めです（1000文字以上でより充実した内容にしてください）")
+    # Strict check: Body length (Must be 1000+ characters)
+    if len(body) < 1000:
+        warnings.append(f"本文が短すぎます。現在の文字数: {len(body)}文字。絶対に1000文字以上で執筆してください。")
+        score -= 50
+
+    # Strict check: Signs/Signals mention
+    if "兆し" in body or "サイン" in body or "反応" in body or "注目" in body or "熱量" in body or "理由" in body:
+        pass # Mentions trend signals
+    else:
+        warnings.append("「なぜこれが次に流行る兆しなのか」という分析的な視点やサイン（SNSの反応など）への言及が不足しています。必ず組み込んでください。")
+        score -= 50
+
+    # Ensure research report is generated
+    if not article.get("research_report"):
+        warnings.append("内部用のリサーチ報告（research_report）が生成されていません。必ず出力してください。")
         score -= 20
 
     # Check meta description
@@ -282,9 +301,10 @@ def check_article_quality(article: Dict, trend: Dict) -> Dict:
     # Ensure score is within bounds
     score = max(0, min(100, score))
 
+    # We enforce a strict 100-point passing score now
     return {
         "score": score,
-        "passed": score >= 60,
+        "passed": score == 100,
         "warnings": warnings,
         "was_rewritten": False,
     }

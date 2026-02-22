@@ -349,6 +349,27 @@ class Notifier:
         if quality_section:
             body_contents.extend(quality_section)
 
+        # Add Research Report (Signs Analysis) if available
+        research_report = content.get('research_report')
+        if research_report:
+            body_contents.append({"type": "separator", "margin": "lg"})
+            body_contents.append({
+                "type": "text", 
+                "text": "🔍 【AIリサーチ報告】流行のサイン", 
+                "weight": "bold", 
+                "size": "sm", 
+                "color": "#FF5722", 
+                "margin": "lg"
+            })
+            body_contents.append({
+                "type": "text", 
+                "text": research_report, 
+                "wrap": True, 
+                "size": "xs", 
+                "color": "#666666", 
+                "margin": "sm"
+            })
+
         # Add image count if there are additional images
         if additional_images and len(additional_images) > 0:
             total_images = 1 + len(additional_images)  # Main image + additional
