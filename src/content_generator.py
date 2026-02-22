@@ -6,13 +6,9 @@ Generates SNS posts and CMS articles using Gemini AI.
 import os
 import json
 import re
+import requests
 from typing import Dict, List, Optional
 from datetime import datetime
-
-try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
 
 
 class ContentGenerator:
@@ -26,13 +22,42 @@ class ContentGenerator:
             api_key: Gemini API key
         """
         self.api_key = api_key
+        if not self.api_key:
+            print("⚠️ Gemini API key not configured")
 
-        if genai and api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-        else:
-            self.model = None
-            print("⚠️ Gemini API not configured")
+    def _call_gemini_rest(self, prompt: str) -> str:
+        """Call Gemini REST API directly with Google Search tool enabled."""
+        if not self.api_key:
+            raise ValueError("API key missing")
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "tools": [{"googleSearch": {}}],
+            "generationConfig": {
+                "temperature": 0.7
+            }
+        }
+        
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+        
+        if response.status_code != 200:
+            print(f"⚠️ Gemini API Error Details: {response.text}")
+        response.raise_for_status()
+
+        data = response.json()
+        
+        # Determine if grounding metadata exists to log it
+        grounding = data.get("candidates", [{}])[0].get("groundingMetadata", {})
+        if grounding:
+            chunks = grounding.get("groundingChunks", [])
+            print(f"🔍 AI successfully used Search Grounding: Retrieved {len(chunks)} sources")
+        
+        text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        if not text:
+            raise ValueError("Empty response text from Gemini API")
+            
+        return text
 
     def generate_content(self, trend: Dict) -> Dict:
         """
@@ -48,20 +73,16 @@ class ContentGenerator:
         snippet = trend.get("snippet", "")
         category = trend.get("category", "trend")
 
-        if not self.model:
+        if not self.api_key:
             return self._generate_fallback_sns(title, category)
 
         # Import prompts from external module
         from src.content_prompts import build_sns_prompt
 
-        if not self.model:
-            return self._generate_fallback_sns(title, category)
-
         prompt = build_sns_prompt(title, snippet, category)
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self._call_gemini_rest(prompt).strip()
 
             # Extract JSON from response
             json_match = re.search(r'\{[\s\S]*\}', text)
@@ -113,14 +134,13 @@ class ContentGenerator:
         # Import prompts from external module
         from src.content_prompts import build_article_prompt, build_sns_prompt
 
-        if not self.model:
+        if not self.api_key:
             return self._generate_fallback_article(title, snippet, category)
 
         prompt = build_article_prompt(title, snippet, category, link, trend_sign_context)
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self._call_gemini_rest(prompt).strip()
 
             # Extract JSON from response
             json_match = re.search(r'\{[\s\S]*\}', text)
@@ -176,14 +196,14 @@ class ContentGenerator:
         Returns:
             Rewritten article dictionary
         """
-        if not self.model:
+        if not self.api_key:
             return article
 
         current_body = article.get("body", "")
         current_title = article.get("title", "")
 
         prompt = f"""
-以下の記事を改善してください。
+以下の記事を最新のインターネット検索結果を用いて改善してください。
 
 現在のタイトル: {current_title}
 元のトレンド概要: {trend.get('snippet')}
@@ -197,7 +217,7 @@ class ContentGenerator:
 必須ルール:
 - 文字数は必ず1000文字以上を満たすこと
 - 分析した「流行のサイン（兆し）」を必ず本文に含めること
-- トレンド情報（{trend.get('title', '')}）に関する具体的な一次情報を入れること
+- トレンド情報（{trend.get('title', '')}）に関する「具体的な一次情報元のURLやニュースメディア名」を必ずインターネットから検索して本文内に記載すること。これがないと事実確認で減点されます。
 - research_report にこの選定理由とサインの考察を記述すること
 
 出力形式（JSON）:
@@ -213,8 +233,7 @@ JSONのみ出力してください。
 """
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self._call_gemini_rest(prompt).strip()
 
             json_match = re.search(r'\{[\s\S]*\}', text)
             if json_match:
@@ -297,6 +316,11 @@ def check_article_quality(article: Dict, trend: Dict) -> Dict:
     if len(tags) < 2:
         warnings.append("タグが少ないです（2つ以上推奨）")
         score -= 5
+
+    # Strict check: Source URLs
+    if "http" not in body and "www" not in body and ".com" not in body and ".jp" not in body and "co.jp" not in body:
+        warnings.append("記事本文に一次情報元の具体的なURLが記載されていません。推測ではなく、必ず検索ツールを使用して事実確認リンクを含めてください。")
+        score -= 20
 
     # Ensure score is within bounds
     score = max(0, min(100, score))
