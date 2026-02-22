@@ -115,7 +115,7 @@ class TrendFetcher:
             }
 
             response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
-            
+
             if response.status_code != 200:
                 log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}")
             response.raise_for_status()
@@ -125,30 +125,22 @@ class TrendFetcher:
             text = "".join(part.get("text", "") for part in parts)
 
             text = text.strip()
-            
+
             # Clean markdown code blocks if present
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
             elif "```" in text:
                 text = text.split("```")[1].split("```")[0].strip()
 
-            # Aggressively extract JSON array using string manipulation
-            start_idx = text.find('[')
-            end_idx = text.rfind(']')
-            
-            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                json_str = text[start_idx:end_idx+1]
-                try:
-                    results = json.loads(json_str)
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"Extracted string is not valid JSON. Error: {e}, String: {json_str[:100]}...")
+            # Extract JSON from response robustly using regex
+            json_match = re.search(r'\[[\s\S]*\]', text)
+            if json_match:
+                json_str = json_match.group()
+                results = json.loads(json_str)
             else:
-                raise ValueError(f"No JSON array brackets found in response: {text[:100]}...")
-                    
+                raise ValueError(f"No JSON array found in response: {text[:100]}...")
+
             log_event("GEMINI_FALLBACK_SUCCESS", f"Gemini fallback generated trends", count=len(results))
-            # We need to return BOTH trends and signs context to match the tuple expectation!
-            # Since fetch_trends calls this and returns trends directly, let's look at the fetch_trends signature.
-            # Wait, fetch_trends expects to return `return trends` not a tuple. Let's check test_debug_flow.py.
             return results
         except Exception as e:
             error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {str(e)}"
