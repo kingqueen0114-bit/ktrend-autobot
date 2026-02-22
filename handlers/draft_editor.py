@@ -259,6 +259,7 @@ def view_draft(request):
         current_date=datetime.now().strftime('%Y年%m月%d日'),
     )
 
+
     return html, 200
 
 def view_article_list(request):
