@@ -46,7 +46,7 @@ def trigger_daily_fetch(request):
     # Fetch trends with KPOP included (limit to 4 for faster processing)
     trends = fetcher.fetch_trends(include_kpop=True)
     if trends and len(trends) > 4:
-        print(f"📊 Limiting trends from {len(trends)} to 4 for faster processing")
+        log_event("TREND_LIMITING", f"Limiting from {len(trends)} to 4 for faster processing")
         trends = trends[:4]
 
     # Filter out duplicate trends (already published in last 24 hours)
@@ -54,13 +54,13 @@ def trigger_daily_fetch(request):
         original_count = len(trends)
         trends = [t for t in trends if not storage.is_duplicate_trend(t.get('title', ''))]
         if len(trends) < original_count:
-            print(f"📊 Filtered {original_count - len(trends)} duplicate trends, {len(trends)} new trends remaining")
+            log_event("TREND_DUPLICATE_FILTER", f"Filtered {original_count - len(trends)} duplicate trends, {len(trends)} new trends remaining")
 
     # Cleanup old trend titles periodically
     storage.cleanup_old_trend_titles(days=7)
 
     if not trends:
-        print("No trends found, exiting")
+        log_event("TREND_NOT_FOUND", "No trends found, exiting")
         try:
             notifier.send_error_notification(
                 error_type="NO_TRENDS_FOUND",
@@ -76,7 +76,7 @@ def trigger_daily_fetch(request):
     # Process each trend
     draft_ids = []
     for idx, target in enumerate(trends):
-        print(f"Processing trend {idx + 1}/{len(trends)}: {target.get('title', 'Unknown')}")
+        log_event("TREND_PROCESSING", f"Processing {idx + 1}/{len(trends)}", trend_title=target.get('title', 'Unknown'))
 
         try:
             # Track category
@@ -97,10 +97,10 @@ def trigger_daily_fetch(request):
 
             # Quality check
             quality = check_article_quality(cms_content, target)
-            print(f"📊 Quality score: {quality['score']}/100 ({'PASS' if quality['passed'] else 'WARN'})")
+            log_event("QUALITY_CHECK", f"Quality score: {quality['score']}/100 ({'PASS' if quality['passed'] else 'WARN'})", score=quality['score'], passed=quality['passed'])
             if quality['warnings']:
                 for warn in quality['warnings'][:3]:
-                    print(f"   ⚠️ {warn}")
+                    log_event("QUALITY_WARNING", warn)
 
             # Auto-rewrite if quality is too low (Strict Self-Correction Loop)
             rewritten = False
@@ -109,16 +109,16 @@ def trigger_daily_fetch(request):
             
             while not quality['passed'] and rewrite_attempts < max_rewrites:
                 rewrite_attempts += 1
-                print(f"🔄 Auto-rewriting article (Attempt {rewrite_attempts}/{max_rewrites}) due to rule violations...")
+                log_event("ARTICLE_REWRITE", f"Auto-rewriting article (Attempt {rewrite_attempts}/{max_rewrites}) due to rule violations")
                 cms_content = generator.rewrite_article(cms_content, quality['warnings'], target, trend_sign_context=trend_sign_context)
                 
                 # Re-check quality after rewrite
                 quality = check_article_quality(cms_content, target)
-                print(f"📊 After rewrite {rewrite_attempts}: {quality['score']}/100 ({'PASS' if quality['passed'] else 'WARN'})")
+                log_event("QUALITY_CHECK", f"After rewrite {rewrite_attempts}: {quality['score']}/100 ({'PASS' if quality['passed'] else 'WARN'})", score=quality['score'], passed=quality['passed'], rewrite_attempt=rewrite_attempts)
                 
                 if quality['warnings']:
                     for warn in quality['warnings'][:3]:
-                        print(f"   ⚠️ {warn}")
+                        log_event("QUALITY_WARNING", warn, rewrite_attempt=rewrite_attempts)
                 rewritten = True
 
             # Save to WordPress as draft first
@@ -129,7 +129,7 @@ def trigger_daily_fetch(request):
             artist_tags = cms_content.get('artist_tags', [])
             if artist_tags:
                 target['artist_tags'] = artist_tags
-                print(f"🏷️ Artist tags extracted: {artist_tags}")
+                log_event("ARTIST_TAGS_EXTRACTED", f"Artist tags extracted: {artist_tags}", tags=artist_tags)
             wp_result = storage.save_draft_to_wordpress(cms_content, img_url, additional_images, trend_category, artist_tags)
 
             # Save Draft to Firestore (with WordPress info and quality score)
@@ -171,7 +171,6 @@ def trigger_daily_fetch(request):
             error_msg = f"Error processing trend {idx + 1}: {str(e)}"
             log_error("TREND_PROCESSING_ERROR", error_msg, error=e,
                       trend_title=target.get('title', 'Unknown')[:50])
-            print(f"❌ {error_msg}")
             errors.append(error_msg)
             # Send immediate error notification for individual trend failures
             try:
@@ -213,9 +212,8 @@ def trigger_daily_fetch(request):
         except:
             pass
 
-    log_event("DAILY_FETCH_COMPLETE", f"Processed {len(draft_ids)} trends",
-              stats=stats, duration_ms=int(duration * 1000))
-    print(f"✅ Processed {len(draft_ids)} trends in {duration:.1f}s: {draft_ids}")
+    log_event("DAILY_FETCH_COMPLETE", f"Processed {len(draft_ids)} trends in {duration:.1f}s",
+              stats=stats, duration_ms=int(duration * 1000), draft_ids=draft_ids)
     return f"Success: {len(draft_ids)} drafts created", 200
 
 
@@ -225,7 +223,7 @@ def trigger_stats_report(request):
     Weekly/Periodic Statistics Report Entry Point.
     Triggered by Cloud Scheduler to send statistics summary to LINE.
     """
-    print(">>> Trigger Stats Report")
+    log_event("STATS_REPORT_START", "Starting stats report generation")
 
     try:
         notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
@@ -233,11 +231,11 @@ def trigger_stats_report(request):
 
         # Get weekly stats (7 days)
         stats = storage.get_stats_summary(days=7)
-        print(f"📊 Stats summary: {stats}")
+        log_event("STATS_SUMMARY", "Stats summary retrieved", stats=stats)
 
         # Get best articles for the week
         best_articles = storage.get_best_articles(days=7, limit=3)
-        print(f"🏆 Best articles: {best_articles}")
+        log_event("BEST_ARTICLES", f"Best articles retrieved: {len(best_articles)} articles", count=len(best_articles))
 
         # Send to LINE
         success = notifier.send_stats_summary(stats, period_days=7, best_articles=best_articles)
@@ -248,7 +246,7 @@ def trigger_stats_report(request):
             return "Failed to send stats report", 500
 
     except Exception as e:
-        print(f"Stats report error: {e}")
+        log_error("STATS_REPORT_ERROR", "Stats report generation failed", error=e)
         return f"Error: {str(e)}", 500
 
 
@@ -268,7 +266,7 @@ def trigger_progress_report(request):
         "notes": "追加メモ"
     }
     """
-    print(">>> Trigger Progress Report")
+    log_event("PROGRESS_REPORT_START", "Starting progress report generation")
 
     try:
         import json as json_lib
@@ -307,5 +305,5 @@ def trigger_progress_report(request):
             return "Failed to send progress report", 500
 
     except Exception as e:
-        print(f"Progress report error: {e}")
+        log_error("PROGRESS_REPORT_ERROR", "Progress report generation failed", error=e)
         return f"Error: {str(e)}", 500

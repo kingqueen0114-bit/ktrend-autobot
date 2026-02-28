@@ -10,6 +10,7 @@ import random
 import re
 from typing import List, Dict, Optional
 from datetime import datetime
+from utils.logging_config import log_event, log_error
 
 try:
     import google.generativeai as genai
@@ -78,13 +79,13 @@ class TrendFetcher:
         Returns:
             List of search results
         """
-        print(f"⚠️ Google Search API bypassing, forcing Gemini fallback...")
+        log_event("GOOGLE_SEARCH_BYPASS", "Google Search API bypassed, using Gemini fallback")
         return self._search_with_gemini(query)
 
     def _search_with_gemini(self, query: str) -> List[Dict]:
         """Fallback search using Gemini REST API when Google Custom Search fails."""
         if not self.api_key:
-            print("⚠️ Gemini API key not available for fallback search")
+            log_error("GEMINI_API_KEY_MISSING", "Gemini API key not available for fallback search")
             return []
 
         try:
@@ -116,7 +117,7 @@ class TrendFetcher:
             response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
             
             if response.status_code != 200:
-                print(f"⚠️ Gemini API Error Details: {response.text}")
+                log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}")
             response.raise_for_status()
 
             data = response.json()
@@ -144,14 +145,14 @@ class TrendFetcher:
             else:
                 raise ValueError(f"No JSON array brackets found in response: {text[:100]}...")
                     
-            print(f"✅ Gemini fallback: {len(results)} trends generated")
+            log_event("GEMINI_FALLBACK_SUCCESS", f"Gemini fallback generated trends", count=len(results))
             # We need to return BOTH trends and signs context to match the tuple expectation!
             # Since fetch_trends calls this and returns trends directly, let's look at the fetch_trends signature.
             # Wait, fetch_trends expects to return `return trends` not a tuple. Let's check test_debug_flow.py.
             return results
         except Exception as e:
             error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {str(e)}"
-            print(f"⚠️ {error_msg}")
+            log_error("GEMINI_FALLBACK_FAILED", error_msg, error=e)
             raise RuntimeError(error_msg)
 
     def _extract_image(self, search_result: Dict) -> Optional[str]:
@@ -228,7 +229,7 @@ class TrendFetcher:
         Returns:
             List of trend dictionaries
         """
-        print(f"🔍 Fetching Korean trends (include_kpop={include_kpop}, topic={topic})")
+        log_event("FETCH_TRENDS_START", "Fetching Korean trends", include_kpop=include_kpop, topic=topic)
 
         # Select queries
         if topic:
@@ -292,7 +293,7 @@ class TrendFetcher:
             if len(trends) >= limit:
                 break
 
-        print(f"✅ Fetched {len(trends)} trends")
+        log_event("FETCH_TRENDS_COMPLETE", "Trend fetching completed", count=len(trends))
         return trends
 
 

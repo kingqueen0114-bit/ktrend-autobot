@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 # LINE通知用
 from src.notifier import LineNotifier
+from utils.logging_config import log_event, log_error
 
 
 class AdSenseReporter:
@@ -257,33 +258,33 @@ class AdSenseReportScheduler:
 
     def send_daily_report(self, date: str, csv_path: str):
         """日次レポートを送信"""
-        print(f"💰 AdSense 日次レポート生成中: {date}")
+        log_event("ADSENSE_REPORT", f"AdSense日次レポート生成中: {date}")
         data = self.adsense.get_daily_report(date, csv_path)
         report_text = self.formatter.format_daily_report(data, date)
 
         messages = [{"type": "text", "text": report_text}]
         self.notifier.push_message(self.notifier.admin_user_id, messages)
-        print("✅ AdSense 日次レポート送信完了")
+        log_event("ADSENSE_REPORT", "AdSense日次レポート送信完了")
 
     def send_weekly_report(self, end_date: str, csv_path: str):
         """週次レポートを送信"""
-        print(f"💰 AdSense 週次レポート生成中")
+        log_event("ADSENSE_REPORT", "AdSense週次レポート生成中")
         data = self.adsense.get_weekly_report(end_date, csv_path)
         report_text = self.formatter.format_weekly_report(data)
 
         messages = [{"type": "text", "text": report_text}]
         self.notifier.push_message(self.notifier.admin_user_id, messages)
-        print("✅ AdSense 週次レポート送信完了")
+        log_event("ADSENSE_REPORT", "AdSense週次レポート送信完了")
 
     def send_monthly_report(self, year: int, month: int, csv_path: str):
         """月次レポートを送信"""
-        print(f"💰 AdSense 月次レポート生成中: {year}年{month}月")
+        log_event("ADSENSE_REPORT", f"AdSense月次レポート生成中: {year}年{month}月")
         data = self.adsense.get_monthly_report(year, month, csv_path)
         report_text = self.formatter.format_monthly_report(data)
 
         messages = [{"type": "text", "text": report_text}]
         self.notifier.push_message(self.notifier.admin_user_id, messages)
-        print("✅ AdSense 月次レポート送信完了")
+        log_event("ADSENSE_REPORT", "AdSense月次レポート送信完了")
 
 
 def main():

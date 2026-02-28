@@ -9,6 +9,7 @@ import re
 import requests
 from typing import Dict, List, Optional
 from datetime import datetime
+from utils.logging_config import log_event, log_error
 
 
 class ContentGenerator:
@@ -23,7 +24,7 @@ class ContentGenerator:
         """
         self.api_key = api_key
         if not self.api_key:
-            print("⚠️ Gemini API key not configured")
+            log_error("GEMINI_INIT", "Gemini API key not configured")
 
     def _call_gemini_rest(self, prompt: str) -> str:
         """Call Gemini REST API directly with Google Search tool enabled."""
@@ -42,7 +43,7 @@ class ContentGenerator:
         response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
         
         if response.status_code != 200:
-            print(f"⚠️ Gemini API Error Details: {response.text}")
+            log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}", details=response.text)
         response.raise_for_status()
 
         data = response.json()
@@ -51,7 +52,7 @@ class ContentGenerator:
         grounding = data.get("candidates", [{}])[0].get("groundingMetadata", {})
         if grounding:
             chunks = grounding.get("groundingChunks", [])
-            print(f"🔍 AI successfully used Search Grounding: Retrieved {len(chunks)} sources")
+            log_event("GROUNDING_SUCCESS", f"Search Grounding retrieved {len(chunks)} sources", source_count=len(chunks))
         
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         text = "".join(part.get("text", "") for part in parts)
@@ -92,7 +93,7 @@ class ContentGenerator:
             else:
                 return self._generate_fallback_sns(title, category)
         except Exception as e:
-            print(f"⚠️ SNS generation failed: {e}")
+            log_error("SNS_GENERATION_FAILED", "SNS content generation failed", error=e)
             return self._generate_fallback_sns(title, category)
 
     def _generate_fallback_sns(self, title: str, category: str) -> Dict:
@@ -153,7 +154,7 @@ class ContentGenerator:
             else:
                 return self._generate_fallback_article(title, snippet, category)
         except Exception as e:
-            print(f"⚠️ Article generation failed: {e}")
+            log_error("ARTICLE_GENERATION_FAILED", "CMS article generation failed", error=e)
             return self._generate_fallback_article(title, snippet, category)
 
     def _generate_fallback_article(self, title: str, snippet: str, category: str) -> Dict:
@@ -246,7 +247,7 @@ JSONのみ出力してください。
             else:
                 return article
         except Exception as e:
-            print(f"⚠️ Rewrite failed: {e}")
+            log_error("ARTICLE_REWRITE_FAILED", "Article rewrite failed", error=e)
             return article
 
 

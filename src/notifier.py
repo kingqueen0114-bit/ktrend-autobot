@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from typing import Dict
+from utils.logging_config import log_event, log_error
 
 class Notifier:
     def __init__(self, access_token: str, user_id: str):
@@ -61,9 +62,9 @@ class Notifier:
 
         try:
             response = requests.post(api_endpoint, headers=headers, data=json.dumps(payload))
-            print(f"Error notification sent: {response.status_code}")
+            log_event("LINE_ERROR_NOTIFICATION_SENT", "Error notification sent", status_code=response.status_code)
         except Exception as e:
-            print(f"Failed to send error notification: {e}")
+            log_error("LINE_ERROR_NOTIFICATION_FAILED", "Failed to send error notification", error=e)
 
     def send_progress_report(self, project_name: str, status: str, completed_tasks: list, next_tasks: list, notes: str = ""):
         """
@@ -123,10 +124,10 @@ class Notifier:
 
         try:
             response = requests.post(api_endpoint, headers=headers, data=json.dumps(payload))
-            print(f"Progress report sent: {response.status_code}")
+            log_event("LINE_PROGRESS_REPORT_SENT", "Progress report sent", status_code=response.status_code)
             return response.status_code == 200
         except Exception as e:
-            print(f"Failed to send progress report: {e}")
+            log_error("LINE_PROGRESS_REPORT_FAILED", "Failed to send progress report", error=e)
             return False
 
     def _send_custom_messages(self, messages: list) -> bool:
@@ -153,10 +154,10 @@ class Notifier:
         
         try:
             response = requests.post(api_endpoint, headers=headers, data=json.dumps(payload))
-            print(f"Custom messages sent: {response.status_code}")
+            log_event("LINE_CUSTOM_MESSAGES_SENT", "Custom messages sent", status_code=response.status_code)
             return response.status_code == 200
         except Exception as e:
-            print(f"Failed to send custom messages: {e}")
+            log_error("LINE_CUSTOM_MESSAGES_FAILED", "Failed to send custom messages", error=e)
             return False
 
     def _validate_image_url(self, url: str) -> str:
@@ -176,17 +177,17 @@ class Notifier:
 
         # Check if URL is valid
         if not url or not isinstance(url, str):
-            print("⚠️ No image URL provided, using fallback")
+            log_event("IMAGE_URL_MISSING", "No image URL provided, using fallback")
             return fallback_images[0]
 
         # Must be HTTPS for LINE
         if not url.startswith("https://"):
-            print(f"⚠️ Image URL not HTTPS: {url[:50]}...")
+            log_event("IMAGE_URL_NOT_HTTPS", "Image URL not HTTPS, using fallback", url_prefix=url[:50])
             return fallback_images[0]
 
         # Skip placeholder URLs
         if "placeholder" in url.lower() or "example.com" in url:
-            print("⚠️ Placeholder URL detected, using fallback")
+            log_event("IMAGE_URL_PLACEHOLDER", "Placeholder URL detected, using fallback")
             return fallback_images[0]
 
         # Quick HEAD request to validate URL (with timeout)
@@ -199,14 +200,14 @@ class Notifier:
                 if "image" in content_type or url.endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif')):
                     return url
                 else:
-                    print(f"⚠️ URL is not an image (Content-Type: {content_type})")
+                    log_event("IMAGE_URL_INVALID_TYPE", "URL is not an image", content_type=content_type)
             else:
-                print(f"⚠️ Image URL returned {response.status_code}")
+                log_event("IMAGE_URL_BAD_STATUS", "Image URL returned non-200 status", status_code=response.status_code)
         except requests.exceptions.Timeout:
-            print(f"⚠️ Image URL timeout, using as-is: {url[:50]}...")
+            log_event("IMAGE_URL_TIMEOUT", "Image URL timeout, using as-is", url_prefix=url[:50])
             return url  # Still try to use it
         except Exception as e:
-            print(f"⚠️ Image URL validation failed: {str(e)[:50]}")
+            log_error("IMAGE_URL_VALIDATION_FAILED", "Image URL validation failed", error=e)
 
         # Return fallback
         import random
@@ -231,7 +232,7 @@ class Notifier:
 
         # Validate and get working image URL
         validated_image_url = self._validate_image_url(image_url)
-        print(f"📷 Using image URL: {validated_image_url[:60]}...")
+        log_event("IMAGE_URL_SELECTED", "Using validated image URL", url_prefix=validated_image_url[:60])
 
         # Prepare CMS data display if available
         cms_title = content.get('title', '')
@@ -301,14 +302,14 @@ class Notifier:
         wp_confirm_uri = f"{app_url}/view-draft?id={draft_id}&tab=preview"
 
         # VERSION CHECK: 2026-02-11-14:15 - Button type should be URI
-        print(f"🔍 NOTIFIER VERSION: 2026-02-11-14:15 | edit_uri={edit_uri[:50]}")
+        log_event("NOTIFIER_VERSION_CHECK", "Notifier version check", version="2026-02-11-14:15", edit_uri_prefix=edit_uri[:50])
 
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.access_token}"
         }
         
-        print(f"Sending Notification with Image: {image_url}")
+        log_event("LINE_APPROVAL_REQUEST_SENDING", "Sending approval notification")
         
         # Parse User IDs (Handle single or comma-separated list)
         if "," in self.user_id:
@@ -442,17 +443,16 @@ class Notifier:
         # DEBUG: Log button action type to verify deployment
         try:
             edit_button_action = payload["messages"][0]["contents"]["body"]["contents"][-1]["contents"][0]["action"]
-            print(f"🔍 EDIT BUTTON TYPE: {edit_button_action.get('type')} | VERSION: 2026-02-11-14:15")
+            log_event("EDIT_BUTTON_TYPE_CHECK", "Edit button type verified", button_type=edit_button_action.get('type'), version="2026-02-11-14:15")
         except:
-            print("⚠️ Could not extract button type for verification")
+            log_event("EDIT_BUTTON_TYPE_CHECK_FAILED", "Could not extract button type for verification")
 
         try:
             response = requests.post(api_endpoint, headers=headers, data=json.dumps(payload))
-            print(f"LINE API Status: {response.status_code}")
-            print(f"LINE API Response: {response.text}")
+            log_event("LINE_API_RESPONSE", "LINE API response received", status_code=response.status_code)
             response.raise_for_status()
         except Exception as e:
-            print(f"Flex Message Failed: {e}")
+            log_error("LINE_FLEX_MESSAGE_FAILED", "Flex message sending failed", error=e)
             # Fallback (Simple broadcast might be better than fail)
             pass
 
@@ -682,10 +682,10 @@ class Notifier:
 
         try:
             response = requests.post(api_endpoint, headers=headers, data=json.dumps(payload))
-            print(f"Stats summary sent: {response.status_code}")
+            log_event("LINE_STATS_SUMMARY_SENT", "Stats summary sent", status_code=response.status_code)
             return response.status_code == 200
         except Exception as e:
-            print(f"Failed to send stats summary: {e}")
+            log_error("LINE_STATS_SUMMARY_FAILED", "Failed to send stats summary", error=e)
             return False
 
 if __name__ == "__main__":
@@ -707,4 +707,4 @@ if __name__ == "__main__":
         mock_img = "https://via.placeholder.com/300" 
         notifier.send_approval_request(mock_content, mock_img, "test_draft_id")
     else:
-        print("LINE credentials missing.")
+        log_event("LINE_CREDENTIALS_MISSING", "LINE credentials not found in environment")

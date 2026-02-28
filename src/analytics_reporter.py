@@ -21,6 +21,7 @@ from google.oauth2 import service_account
 
 # LINE通知用
 from src.notifier import Notifier
+from utils.logging_config import log_event, log_error
 
 
 class AnalyticsReporter:
@@ -367,13 +368,13 @@ class ReportScheduler:
         if date is None:
             date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-        print(f"📊 日次レポート生成中: {date}")
+        log_event("GA4_REPORT", f"日次レポート生成中: {date}")
         data = self.analytics.get_daily_report(date)
         report_text = self.formatter.format_daily_report(data, date)
 
         messages = [{"type": "text", "text": report_text}]
         self.notifier._send_custom_messages(messages)
-        print("✅ 日次レポート送信完了")
+        log_event("GA4_REPORT", "日次レポート送信完了")
 
     def send_weekly_report(self, end_date: Optional[str] = None):
         """週次レポートを送信"""
@@ -382,7 +383,7 @@ class ReportScheduler:
 
         start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d")
 
-        print(f"📊 週次レポート生成中: {start_date} 〜 {end_date}")
+        log_event("GA4_REPORT", f"週次レポート生成中: {start_date} - {end_date}")
         data = self.analytics.get_weekly_report(end_date)
         top_pages = self.analytics.get_top_pages(start_date, end_date, limit=10)
 
@@ -390,7 +391,7 @@ class ReportScheduler:
 
         messages = [{"type": "text", "text": report_text}]
         self.notifier._send_custom_messages(messages)
-        print("✅ 週次レポート送信完了")
+        log_event("GA4_REPORT", "週次レポート送信完了")
 
     def send_monthly_report(self, year: Optional[int] = None, month: Optional[int] = None):
         """月次レポートを送信"""
@@ -399,7 +400,7 @@ class ReportScheduler:
             year = last_month.year
             month = last_month.month
 
-        print(f"📊 月次レポート生成中: {year}年{month}月")
+        log_event("GA4_REPORT", f"月次レポート生成中: {year}年{month}月")
         data = self.analytics.get_monthly_report(year, month)
 
         start_date = f"{year}-{month:02d}-01"
@@ -415,7 +416,7 @@ class ReportScheduler:
 
         messages = [{"type": "text", "text": report_text}]
         self.notifier._send_custom_messages(messages)
-        print("✅ 月次レポート送信完了")
+        log_event("GA4_REPORT", "月次レポート送信完了")
 
 
 def main():

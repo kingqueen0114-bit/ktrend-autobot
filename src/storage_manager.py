@@ -7,6 +7,7 @@ from datetime import datetime
 from google.cloud import firestore
 from google.cloud import storage
 from google.oauth2.service_account import Credentials
+from utils.logging_config import log_event, log_error
 
 # WordPressカテゴリslug → ID マッピング
 CATEGORY_IDS = {
@@ -104,7 +105,7 @@ class StorageManager:
                 existing_tags = search_response.json()
                 for tag in existing_tags:
                     if tag.get('name', '').lower() == tag_name.lower():
-                        print(f"📌 Found existing tag: {tag_name} (ID: {tag['id']})")
+                        log_event("WP_TAG_FOUND", f"Found existing tag: {tag_name}", tag_id=tag['id'])
                         return tag['id']
 
             # 2. タグが見つからない場合は作成
@@ -118,7 +119,7 @@ class StorageManager:
 
             if create_response.status_code == 201:
                 new_tag = create_response.json()
-                print(f"✨ Created new tag: {tag_name} (ID: {new_tag['id']})")
+                log_event("WP_TAG_CREATED", f"Created new tag: {tag_name}", tag_id=new_tag['id'])
                 return new_tag['id']
             elif create_response.status_code == 400:
                 # タグが既に存在する場合（term_existsエラー）
@@ -126,11 +127,11 @@ class StorageManager:
                 if 'data' in error_data and 'term_id' in error_data.get('data', {}):
                     return error_data['data']['term_id']
 
-            print(f"⚠️ Failed to create tag {tag_name}: {create_response.text}")
+            log_error("WP_TAG_CREATE_FAILED", f"Failed to create tag: {tag_name}", status_code=create_response.status_code)
             return None
 
         except Exception as e:
-            print(f"Tag error for '{tag_name}': {e}")
+            log_error("WP_TAG_ERROR", f"Tag error for: {tag_name}", error=e)
             return None
 
     def get_tag_ids(self, tag_names: list) -> list:
@@ -163,7 +164,7 @@ class StorageManager:
             doc_ref.set(article_data)
             return doc_ref.id
         except Exception as e:
-            print(f"Firestore Save Error: {e}")
+            log_error("FIRESTORE_SAVE_ERROR", "Failed to save draft to Firestore", error=e)
             return None
 
     def get_draft(self, draft_id):
@@ -175,7 +176,7 @@ class StorageManager:
                 return doc.to_dict()
             return None
         except Exception as e:
-            print(f"Firestore Get Error: {e}")
+            log_error("FIRESTORE_GET_ERROR", "Failed to get draft from Firestore", error=e)
             return None
 
     def create_blank_draft(self, user_id):
@@ -210,7 +211,7 @@ class StorageManager:
             doc_ref.set(article_data)
             return doc_ref.id
         except Exception as e:
-            print(f"Firestore Create Blank Draft Error: {e}")
+            log_error("FIRESTORE_CREATE_BLANK_ERROR", "Failed to create blank draft", error=e)
             return None
 
     def store_edit_session(self, user_id: str, draft_id: str, edit_type: str):
@@ -222,10 +223,10 @@ class StorageManager:
                 'edit_type': edit_type,
                 'timestamp': firestore.SERVER_TIMESTAMP
             })
-            print(f"📝 Edit session stored for user {user_id[:10]}... (type: {edit_type}, draft: {draft_id})")
+            log_event("FIRESTORE_SESSION_STORED", f"Edit session stored for user", edit_type=edit_type, draft_id=draft_id)
             return True
         except Exception as e:
-            print(f"Firestore Store Edit Session Error: {e}")
+            log_error("FIRESTORE_SESSION_STORE_ERROR", "Failed to store edit session", error=e)
             return False
 
     def get_edit_session(self, user_id: str) -> dict:
@@ -255,13 +256,13 @@ class StorageManager:
                     # session_time is a DatetimeWithNanoseconds object
                     now = datetime.now(timezone.utc)
                     if now - session_time > timedelta(minutes=5):
-                        print(f"⚠️ Edit session expired for user {user_id[:10]}...")
+                        log_event("FIRESTORE_SESSION_EXPIRED", "Edit session expired for user")
                         return None
                 return session
             return None
 
         except Exception as e:
-            print(f"Firestore Get Edit Session Error: {e}")
+            log_error("FIRESTORE_SESSION_GET_ERROR", "Failed to get edit session", error=e)
             return None
 
     def upload_image_to_gcs(self, image_url, filename_prefix="img", max_retries: int = 3):
@@ -276,7 +277,7 @@ class StorageManager:
                 }
                 response = requests.get(image_url, stream=True, timeout=30, headers=headers)
                 if response.status_code != 200:
-                    print(f"Failed to download image: HTTP {response.status_code}")
+                    log_error("GCS_DOWNLOAD_FAILED", f"Failed to download image: HTTP {response.status_code}")
                     if attempt < max_retries - 1:
                         time.sleep(2 ** attempt)
                         continue
@@ -291,7 +292,7 @@ class StorageManager:
                 blob.upload_from_string(response.content, content_type=response.headers.get('Content-Type'))
                 return blob.public_url
             except Exception as e:
-                print(f"GCS Upload Error (attempt {attempt + 1}/{max_retries}): {e}")
+                log_error("GCS_UPLOAD_ERROR", f"GCS upload failed (attempt {attempt + 1}/{max_retries})", error=e)
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)
                     continue
@@ -310,7 +311,7 @@ class StorageManager:
             blob.upload_from_string(image_data, content_type=content_type)
             return blob.public_url
         except Exception as e:
-            print(f"GCS Byte Upload Error: {e}")
+            log_error("GCS_BYTE_UPLOAD_ERROR", "Failed to upload bytes to GCS", error=e)
             return None
 
     def upload_image_to_wordpress(self, image_url: str, title: str = "", max_retries: int = 3) -> dict:
@@ -339,7 +340,7 @@ class StorageManager:
 
         for url_idx, current_url in enumerate(urls_to_try):
             if url_idx > 0:
-                print(f"🔄 Trying fallback image {url_idx}: {current_url[:50]}...")
+                log_event("WP_UPLOAD_FALLBACK", f"Trying fallback image {url_idx}")
 
             for attempt in range(max_retries):
                 try:
@@ -355,12 +356,12 @@ class StorageManager:
                     # Check if we got actual image data
                     content_type = response.headers.get("Content-Type", "")
                     if "text/html" in content_type:
-                        print(f"⚠️ Got HTML instead of image, skipping...")
+                        log_event("WP_UPLOAD_SKIP", "Got HTML instead of image, skipping")
                         break  # Try next URL
 
                     image_data = response.content
                     if len(image_data) < 1000:  # Too small to be a valid image
-                        print(f"⚠️ Image data too small ({len(image_data)} bytes), skipping...")
+                        log_event("WP_UPLOAD_SKIP", f"Image data too small ({len(image_data)} bytes), skipping")
                         break  # Try next URL
 
                     # Content-Typeから拡張子を推測
@@ -395,7 +396,7 @@ class StorageManager:
                     if title:
                         self._update_media_alt(media_data["id"], title)
 
-                    print(f"✅ Image uploaded successfully (attempt {attempt + 1}, URL index {url_idx})")
+                    log_event("WP_UPLOAD_SUCCESS", f"Image uploaded successfully (attempt {attempt + 1}, URL index {url_idx})")
                     return {
                         "id": media_data["id"],
                         "url": media_data.get("source_url", media_data.get("guid", {}).get("rendered", "")),
@@ -405,7 +406,7 @@ class StorageManager:
                 except requests.exceptions.HTTPError as e:
                     last_error = e
                     status_code = e.response.status_code if e.response else 0
-                    print(f"⚠️ HTTP Error {status_code} (attempt {attempt + 1}/{max_retries})")
+                    log_error("WP_UPLOAD_HTTP_ERROR", f"HTTP Error {status_code} (attempt {attempt + 1}/{max_retries})", error=e)
 
                     # 404/403 errors - don't retry, try next URL
                     if status_code in [404, 403, 401]:
@@ -414,22 +415,22 @@ class StorageManager:
                     # Other errors - retry with backoff
                     if attempt < max_retries - 1:
                         wait_time = 2 ** attempt
-                        print(f"🔄 Retrying in {wait_time}s...")
+                        log_event("WP_UPLOAD_RETRY", f"Retrying in {wait_time}s")
                         time.sleep(wait_time)
 
                 except requests.exceptions.Timeout as e:
                     last_error = e
-                    print(f"⚠️ Timeout (attempt {attempt + 1}/{max_retries})")
+                    log_error("WP_UPLOAD_TIMEOUT", f"Timeout (attempt {attempt + 1}/{max_retries})", error=e)
                     if attempt < max_retries - 1:
                         time.sleep(2)
 
                 except Exception as e:
                     last_error = e
-                    print(f"⚠️ Error: {str(e)[:100]} (attempt {attempt + 1}/{max_retries})")
+                    log_error("WP_UPLOAD_ERROR", f"Upload error (attempt {attempt + 1}/{max_retries})", error=e)
                     if attempt < max_retries - 1:
                         time.sleep(1)
 
-        print(f"❌ All image upload attempts failed: {last_error}")
+        log_error("WP_UPLOAD_ALL_FAILED", "All image upload attempts failed", error=last_error)
         return None
 
     def _update_media_alt(self, media_id: int, alt_text: str) -> bool:
@@ -474,13 +475,13 @@ class StorageManager:
             preview_url = result.get("preview_url")
 
             if preview_url:
-                print(f"Public Preview enabled: {preview_url}")
+                log_event("WP_PREVIEW_ENABLED", "Public Preview enabled", preview_url=preview_url)
                 return preview_url
 
             return None
 
         except Exception as e:
-            print(f"Public Preview Enable Error: {e}")
+            log_error("WP_PREVIEW_ERROR", "Failed to enable public preview", error=e)
             return None
 
     def publish_to_wordpress(self, draft_data: dict, image_url: str = None, category: str = None, artist_tags: list = None, wp_post_id: int = None) -> dict:
@@ -510,13 +511,13 @@ class StorageManager:
 
             # 2. カテゴリを判定
             category_id = get_wp_category_id(category) if category else CATEGORY_IDS.get("trend", 3)
-            print(f"📂 Publish Category: {category} → WordPress ID: {category_id}")
+            log_event("WP_PUBLISH_CATEGORY", f"Publish Category: {category} -> WordPress ID: {category_id}")
 
             # 3. タグIDを取得
             tag_ids = []
             if artist_tags:
                 tag_ids = self.get_tag_ids(artist_tags)
-                print(f"🏷️ Tags: {artist_tags} → IDs: {tag_ids}")
+                log_event("WP_PUBLISH_TAGS", f"Tags resolved: {artist_tags} -> IDs: {tag_ids}")
 
             # 4. 投稿データを構築
             meta_description = draft_data.get('meta_description', '')
@@ -544,7 +545,7 @@ class StorageManager:
 
             if wp_post_id and wp_post_id != 999999:
                 # 既存の下書きを公開に更新
-                print(f"📝 Updating existing WordPress post {wp_post_id} to 'publish'...")
+                log_event("WP_PUBLISH_UPDATE", f"Updating existing WordPress post {wp_post_id} to publish")
                 response = requests.post(
                     f"{self.wp_url}/wp-json/wp/v2/posts/{wp_post_id}",
                     headers=headers,
@@ -553,7 +554,7 @@ class StorageManager:
                 )
             else:
                 # 新規投稿として作成
-                print("📝 Creating new WordPress post as 'publish'...")
+                log_event("WP_PUBLISH_CREATE", "Creating new WordPress post as publish")
                 response = requests.post(
                     f"{self.wp_url}/wp-json/wp/v2/posts",
                     headers=headers,
@@ -566,7 +567,7 @@ class StorageManager:
             post_id = post_result["id"]
             post_url = post_result.get("link", f"{self.wp_url}/?p={post_id}")
 
-            print(f"✅ WordPress published! ID: {post_id}, URL: {post_url}")
+            log_event("WP_PUBLISH_SUCCESS", "WordPress published successfully", post_id=post_id, post_url=post_url)
             return {
                 "id": post_id,
                 "url": post_url,
@@ -574,12 +575,12 @@ class StorageManager:
             }
 
         except requests.exceptions.RequestException as e:
-            print(f"WordPress Publish Error: {e}")
+            log_error("WP_PUBLISH_ERROR", "WordPress publish request failed", error=e)
             if hasattr(e, 'response') and e.response is not None:
-                print(f"Response: {e.response.text[:500]}")
+                log_error("WP_PUBLISH_RESPONSE", f"Response status: {e.response.status_code}")
             return None
         except Exception as e:
-            print(f"Unexpected WordPress Publish Error: {e}")
+            log_error("WP_PUBLISH_UNEXPECTED_ERROR", "Unexpected WordPress publish error", error=e)
             return None
 
     def save_draft_to_wordpress(self, draft_data: dict, image_url: str = None, additional_images: list = None, category: str = None, artist_tags: list = None) -> dict:
@@ -619,11 +620,11 @@ class StorageManager:
                 )
                 if media_result:
                     featured_media_id = media_result["id"]
-                    print(f"✅ Featured image uploaded: Media ID {featured_media_id}")
+                    log_event("WP_DRAFT_IMAGE_UPLOADED", f"Featured image uploaded: Media ID {featured_media_id}")
                 else:
-                    print(f"⚠️ Featured image upload failed")
+                    log_error("WP_DRAFT_IMAGE_FAILED", "Featured image upload failed")
             else:
-                print(f"⚠️ Invalid featured image URL: {image_url}, skipping")
+                log_event("WP_DRAFT_IMAGE_SKIP", "Invalid featured image URL, skipping")
 
             # 2. 追加画像をアップロードしてプレースホルダーを置換
             body_content = draft_data.get('body', '')
@@ -645,11 +646,11 @@ class StorageManager:
                             # Replace placeholder with actual image
                             placeholder = f"[IMAGE_{idx + 1}]"
                             body_content = body_content.replace(placeholder, img_html)
-                            print(f"✅ Additional image {idx + 1} uploaded: {add_media_result['url']}")
+                            log_event("WP_DRAFT_ADDIMG_UPLOADED", f"Additional image {idx + 1} uploaded")
                         else:
                             # Remove placeholder if upload failed
                             body_content = body_content.replace(f"[IMAGE_{idx + 1}]", "")
-                            print(f"⚠️ Additional image {idx + 1} upload failed")
+                            log_error("WP_DRAFT_ADDIMG_FAILED", f"Additional image {idx + 1} upload failed")
                     else:
                         # Remove placeholder for invalid URLs
                         body_content = body_content.replace(f"[IMAGE_{idx + 1}]", "")
@@ -660,13 +661,13 @@ class StorageManager:
 
             # 3. カテゴリを判定（トレンドカテゴリから自動マッピング）
             category_id = get_wp_category_id(category) if category else CATEGORY_IDS.get("trend", 3)
-            print(f"📂 Category: {category} → WordPress ID: {category_id}")
+            log_event("WP_DRAFT_CATEGORY", f"Category: {category} -> WordPress ID: {category_id}")
 
             # 3.5 タグIDを取得
             tag_ids = []
             if artist_tags:
                 tag_ids = self.get_tag_ids(artist_tags)
-                print(f"🏷️ Tags: {artist_tags} → IDs: {tag_ids}")
+                log_event("WP_DRAFT_TAGS", f"Tags resolved: {artist_tags} -> IDs: {tag_ids}")
 
             # 4. 投稿データを構築（下書きとして保存）
             meta_description = draft_data.get('meta_description', '')
@@ -723,12 +724,12 @@ class StorageManager:
             }
 
         except requests.exceptions.RequestException as e:
-            print(f"WordPress Draft Save Error: {e}")
+            log_error("WP_DRAFT_SAVE_ERROR", "WordPress draft save request failed", error=e)
             if hasattr(e, 'response') and e.response is not None:
-                print(f"Response: {e.response.text}")
+                log_error("WP_DRAFT_SAVE_RESPONSE", f"Response status: {e.response.status_code}")
             return None
         except Exception as e:
-            print(f"Unexpected WordPress Draft Error: {e}")
+            log_error("WP_DRAFT_UNEXPECTED_ERROR", "Unexpected WordPress draft error", error=e)
             return None
 
 
@@ -754,7 +755,7 @@ class StorageManager:
             return True
 
         except Exception as e:
-            print(f"WordPress Delete Error: {e}")
+            log_error("WP_DELETE_ERROR", "Failed to delete WordPress draft", error=e)
             return False
 
     def log_execution(self, execution_data: dict) -> str:
@@ -778,10 +779,10 @@ class StorageManager:
             execution_data['created_at'] = firestore.SERVER_TIMESTAMP
             doc_ref = self.db.collection(self.logs_collection).document()
             doc_ref.set(execution_data)
-            print(f"📝 Execution log saved: {doc_ref.id}")
+            log_event("FIRESTORE_LOG_SAVED", "Execution log saved", log_id=doc_ref.id)
             return doc_ref.id
         except Exception as e:
-            print(f"Failed to save execution log: {e}")
+            log_error("FIRESTORE_LOG_SAVE_ERROR", "Failed to save execution log", error=e)
             return None
 
     def update_daily_stats(self, date_str: str, stats: dict) -> bool:
@@ -823,10 +824,10 @@ class StorageManager:
 
             stats['updated_at'] = firestore.SERVER_TIMESTAMP
             doc_ref.set(stats, merge=True)
-            print(f"📊 Daily stats updated for {date_str}")
+            log_event("FIRESTORE_STATS_UPDATED", f"Daily stats updated for {date_str}")
             return True
         except Exception as e:
-            print(f"Failed to update daily stats: {e}")
+            log_error("FIRESTORE_STATS_UPDATE_ERROR", "Failed to update daily stats", error=e)
             return False
 
     def increment_approval_stat(self, approved: bool = True) -> bool:
@@ -846,10 +847,10 @@ class StorageManager:
 
             field = 'approved_count' if approved else 'rejected_count'
             doc_ref.set({field: firestore.Increment(1)}, merge=True)
-            print(f"📊 {'Approved' if approved else 'Rejected'} count incremented for {date_str}")
+            log_event("FIRESTORE_APPROVAL_STAT", f"{'Approved' if approved else 'Rejected'} count incremented for {date_str}")
             return True
         except Exception as e:
-            print(f"Failed to increment approval stat: {e}")
+            log_error("FIRESTORE_APPROVAL_STAT_ERROR", "Failed to increment approval stat", error=e)
             return False
 
     def get_stats_summary(self, days: int = 7) -> dict:
@@ -908,7 +909,7 @@ class StorageManager:
 
             return summary
         except Exception as e:
-            print(f"Failed to get stats summary: {e}")
+            log_error("FIRESTORE_STATS_SUMMARY_ERROR", "Failed to get stats summary", error=e)
             return {}
 
     def get_best_articles(self, days: int = 7, limit: int = 3) -> list:
@@ -953,7 +954,7 @@ class StorageManager:
             return best_articles
 
         except Exception as e:
-            print(f"Failed to get best articles: {e}")
+            log_error("FIRESTORE_BEST_ARTICLES_ERROR", "Failed to get best articles", error=e)
             return []
 
     def get_article_performance(self, days: int = 7) -> dict:
@@ -1018,7 +1019,7 @@ class StorageManager:
             }
 
         except Exception as e:
-            print(f"Failed to get article performance: {e}")
+            log_error("FIRESTORE_PERFORMANCE_ERROR", "Failed to get article performance", error=e)
             return {
                 'total_published': 0,
                 'avg_quality_score': 0,
@@ -1054,7 +1055,7 @@ class StorageManager:
             self.db.collection('trend_titles').document(title_hash).set(doc_data)
             return True
         except Exception as e:
-            print(f"Failed to save trend title: {e}")
+            log_error("FIRESTORE_TREND_SAVE_ERROR", "Failed to save trend title", error=e)
             return False
 
     def is_duplicate_trend(self, title: str, hours: int = 24) -> bool:
@@ -1088,12 +1089,12 @@ class StorageManager:
                 # Calculate similarity
                 similarity = self._calculate_title_similarity(title, existing_title)
                 if similarity >= 0.6:  # 60% similarity threshold
-                    print(f"🔄 Duplicate found: '{title[:30]}...' ≈ '{existing_title[:30]}...' ({similarity:.0%})")
+                    log_event("TREND_DUPLICATE_FOUND", f"Duplicate trend detected (similarity: {similarity:.0%})")
                     return True
 
             return False
         except Exception as e:
-            print(f"Failed to check duplicate: {e}")
+            log_error("TREND_DUPLICATE_CHECK_ERROR", "Failed to check duplicate trend", error=e)
             return False
 
     def _calculate_title_similarity(self, title1: str, title2: str) -> float:
@@ -1147,9 +1148,9 @@ class StorageManager:
                 deleted += 1
 
             if deleted > 0:
-                print(f"🗑️ Cleaned up {deleted} old trend titles")
+                log_event("TREND_CLEANUP", f"Cleaned up {deleted} old trend titles")
 
             return deleted
         except Exception as e:
-            print(f"Failed to cleanup trend titles: {e}")
+            log_error("TREND_CLEANUP_ERROR", "Failed to cleanup trend titles", error=e)
             return 0

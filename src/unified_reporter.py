@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from src.analytics_reporter import AnalyticsReporter, ReportFormatter as AnalyticsFormatter
 from src.adsense_reporter import AdSenseReporter, AdSenseFormatter
 from src.notifier import Notifier
+from utils.logging_config import log_event, log_error
 
 
 class UnifiedReporter:
@@ -39,7 +40,7 @@ class UnifiedReporter:
         if date is None:
             date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-        print(f"📊 統合日次レポート生成中: {date}")
+        log_event("UNIFIED_REPORT", f"統合日次レポート生成中: {date}")
 
         # Analyticsデータ取得
         analytics_data = self.analytics.get_daily_report(date)
@@ -85,7 +86,7 @@ class UnifiedReporter:
 
         messages = [{"type": "text", "text": report}]
         self.notifier._send_custom_messages(messages)
-        print("✅ 統合日次レポート送信完了")
+        log_event("UNIFIED_REPORT", "統合日次レポート送信完了")
 
     def send_weekly_unified_report(self, end_date: Optional[str] = None, adsense_csv: Optional[str] = None):
         """
@@ -100,7 +101,7 @@ class UnifiedReporter:
 
         start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d")
 
-        print(f"📊 統合週次レポート生成中: {start_date} 〜 {end_date}")
+        log_event("UNIFIED_REPORT", f"統合週次レポート生成中: {start_date} - {end_date}")
 
         # Analyticsデータ取得
         analytics_data = self.analytics.get_weekly_report(end_date)
@@ -143,7 +144,7 @@ class UnifiedReporter:
 
         messages = [{"type": "text", "text": report}]
         self.notifier._send_custom_messages(messages)
-        print("✅ 統合週次レポート送信完了")
+        log_event("UNIFIED_REPORT", "統合週次レポート送信完了")
 
     def send_monthly_unified_report(
         self,
@@ -164,7 +165,7 @@ class UnifiedReporter:
             year = last_month.year
             month = last_month.month
 
-        print(f"📊 統合月次レポート生成中: {year}年{month}月")
+        log_event("UNIFIED_REPORT", f"統合月次レポート生成中: {year}年{month}月")
 
         # Analyticsデータ取得
         analytics_data = self.analytics.get_monthly_report(year, month)
@@ -230,7 +231,7 @@ class UnifiedReporter:
 
         messages = [{"type": "text", "text": report}]
         self.notifier._send_custom_messages(messages)
-        print("✅ 統合月次レポート送信完了")
+        log_event("UNIFIED_REPORT", "統合月次レポート送信完了")
 
     @staticmethod
     def _format_duration(seconds: float) -> str:
