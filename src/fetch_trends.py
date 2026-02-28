@@ -10,7 +10,7 @@ import random
 import re
 from typing import List, Dict, Optional
 from datetime import datetime
-from utils.logging_config import log_event, log_error
+from utils.logging_config import log_event, log_error, mask_url_keys
 
 try:
     import google.generativeai as genai
@@ -118,14 +118,19 @@ class TrendFetcher:
 
             if response.status_code != 200:
                 log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}")
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                raise requests.exceptions.HTTPError(
+                    mask_url_keys(str(e)), response=e.response
+                ) from None
 
             data = response.json()
             parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
             text = "".join(part.get("text", "") for part in parts)
 
             text = text.strip()
-            
+
             # Clean markdown code blocks if present
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
@@ -143,7 +148,7 @@ class TrendFetcher:
             log_event("GEMINI_FALLBACK_SUCCESS", f"Gemini fallback generated trends", count=len(results))
             return results
         except Exception as e:
-            error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {str(e)}"
+            error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {mask_url_keys(str(e))}"
             log_error("GEMINI_FALLBACK_FAILED", error_msg, error=e)
             raise RuntimeError(error_msg)
 
