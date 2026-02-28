@@ -42,7 +42,7 @@ def show_quick_edit_options(draft_id: str, line_bot_api, reply_token):
                     {"type": "button", "style": "primary", "height": "sm", "action": {"type": "postback", "label": "✏️ タイトル編集", "data": f"action=edit_title&draft_id={draft_id}", "displayText": "タイトルを編集"}},
                     {"type": "button", "style": "primary", "height": "sm", "action": {"type": "postback", "label": "📝 メタ説明編集", "data": f"action=edit_meta&draft_id={draft_id}", "displayText": "メタ説明を編集"}},
                     {"type": "button", "style": "secondary", "height": "sm", "action": {"type": "postback", "label": "🔄 記事再生成", "data": f"action=regenerate_article&draft_id={draft_id}", "displayText": "記事を再生成"}},
-                    {"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "🌐 WPで編集", "uri": f"https://asia-northeast1-k-trend-autobot.cloudfunctions.net/view-draft?id={draft_id}"}},
+                    {"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "🌐 WPで編集", "uri": f"{app_url}/view-draft?id={draft_id}"}},
                     {"type": "button", "style": "link", "height": "sm", "action": {"type": "postback", "label": "❌ キャンセル", "data": "action=done", "displayText": "キャンセル"}}
                 ]
             }
@@ -54,7 +54,8 @@ def show_quick_edit_options(draft_id: str, line_bot_api, reply_token):
         log_error("QUICK_EDIT_ERROR", f"Failed to show edit options: {str(e)}", error=e)
         try:
             from linebot.models import TextMessage
-            line_bot_api.reply_message(reply_token, TextMessage(text=f"❌ 編集オプションの表示に失敗しました。\nview-draft URLから編集してください:\nhttps://asia-northeast1-k-trend-autobot.cloudfunctions.net/view-draft?id={draft_id}"))
+            app_url = os.environ.get('APP_URL', 'https://ktrend-autobot-nnfhuwwfiq-an.a.run.app')
+            line_bot_api.reply_message(reply_token, TextMessage(text=f"❌ 編集オプションの表示に失敗しました。\nview-draft URLから編集してください:\n{app_url}/view-draft?id={draft_id}"))
         except Exception as fallback_error:
             log_error("QUICK_EDIT_FALLBACK_ERROR", f"Fallback also failed: {str(fallback_error)}")
 

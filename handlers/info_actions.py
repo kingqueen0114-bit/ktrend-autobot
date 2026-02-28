@@ -187,7 +187,7 @@ def show_pending_drafts(line_bot_api, reply_token):
         )
 
     except Exception as e:
-        print(f"Error showing pending drafts: {e}")
+        log_error("PENDING_DRAFTS_ERROR", f"Error showing pending drafts: {e}", error=e)
         line_bot_api.reply_message(reply_token, TextMessage(text=f"エラーが発生しました: {str(e)[:50]}"))
 
 def show_trend_summary(line_bot_api, user_id):
@@ -247,8 +247,7 @@ def show_trend_summary(line_bot_api, user_id):
         log_event("TREND_SUMMARY_SENT", f"Showed {len(trends)} trends")
 
     except Exception as e:
-        log_error("TREND_SUMMARY_ERROR", str(e), error=e)
-        print(f"Trend summary error: {e}")
+        log_error("TREND_SUMMARY_ERROR", f"Trend summary error: {e}", error=e)
         try:
             line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
             line_bot_api_push.push_message(user_id, TextMessage(text=f"エラー: {str(e)[:50]}"))
@@ -332,8 +331,7 @@ def search_articles(keyword: str, line_bot_api, user_id: str):
         log_event("SEARCH_COMPLETE", f"Found {len(matching_articles)} articles for '{keyword}'")
 
     except Exception as e:
-        log_error("SEARCH_ERROR", str(e), error=e)
-        print(f"Search error: {e}")
+        log_error("SEARCH_ERROR", f"Search error: {e}", error=e)
         try:
             line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
             line_bot_api_push.push_message(user_id, TextMessage(text=f"検索エラー: {str(e)[:50]}"))

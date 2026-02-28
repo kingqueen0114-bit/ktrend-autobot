@@ -81,3 +81,95 @@
 * コレクション: `article_drafts`
 * フィルタはFieldFilter構文を使用: `.where(filter=FieldFilter(...))`
 * `order_by` と `where` の組み合わせにはFirestoreインデックスが必要
+
+## 6. 🎯 オーケストレーターモード (Manager Mode)
+
+### 基本原則
+* **Claudeはマネージャー/オーケストレーターとして振る舞う。自分では一切実装しない。**
+* 全てのコード変更・調査・テストは **Task agent（subagent）** に委任すること。
+* タスクは可能な限り **細分化**（1 subagent = 1 明確なアウトプット）して並列実行すること。
+* subagentの結果を **レビュー・統合・判断** するのがマネージャーの役割。
+
+### PDCAサイクルの構築
+
+すべてのタスクは以下のPDCAサイクルで管理すること：
+
+#### Plan（計画）
+1. TodoWriteでタスクを細分化して一覧化
+2. 依存関係の特定（並列実行可能なタスクを識別）
+3. 各タスクの完了条件（Definition of Done）を明確化
+4. Explore agentで現状調査 → 計画の精度向上
+
+#### Do（実行）
+1. 独立したタスクは **並列でsubagentに委任**（Task tool）
+2. 各subagentには以下を明示的に指示：
+   - 目的（何を達成するか）
+   - スコープ（どのファイルを変更するか）
+   - 制約（変更してはいけないもの）
+   - 完了条件（どうなったら完了か）
+3. subagentの結果を逐次確認し、TodoWriteを更新
+
+#### Check（検証）
+1. subagentの出力結果をレビュー
+2. 別のsubagent（テスト担当）で検証を実行
+3. 品質基準に満たない場合は再実行を指示
+4. 全タスク完了後、統合テストをsubagentに委任
+
+#### Act（改善）
+1. 問題があれば原因分析をsubagentに委任
+2. 修正タスクを新たに生成してPDCAを再回転
+3. 学んだ教訓をメモリに記録
+
+### subagent委任のルール
+
+| 状況 | 使用するsubagent |
+|------|----------------|
+| コードベース調査・ファイル検索 | `Explore` agent |
+| 実装計画の設計 | `Plan` agent |
+| コード実装・ファイル編集 | `Bash` agent または `general-purpose` agent |
+| テスト実行・検証 | `Bash` agent |
+| 複雑な調査・マルチステップ | `general-purpose` agent |
+
+### 禁止事項
+* マネージャー自身が Edit/Write ツールで直接コードを書くこと
+* subagentの結果を確認せずに次のステップに進むこと
+* TodoWriteを使わずにタスクを開始すること
+
+## 7. 📰 記事制作パイプライン（Article Production Pipeline）
+
+### フロー概要
+
+```
+[Phase 1: トレンド収集] → [Phase 2: コンテンツ生成] → [Phase 3: 品質保証] → [Phase 4: 公開管理]
+```
+
+### Phase 1: トレンド収集 (Trend Discovery)
+- **トリガー:** Cloud Scheduler (毎日09:00 JST) / LINE テキスト / LINE カテゴリ選択
+- **実行:** `src/fetch_trends.py` → Google Custom Search + Gemini Grounding
+- **出力:** トレンドデータ（title, snippet, image_url, source_url, original_text）
+- **品質ゲート:** 重複排除、24時間以内フィルタ、最大4件制限
+
+### Phase 2: コンテンツ生成 (Content Generation)
+- **SNS生成:** `src/content_generator.py` → news_post, luna_post_a, luna_post_b
+- **CMS記事生成:** Gemini REST API + Grounding → title, lead, body, meta_description
+- **X投稿案:** 2件自動生成（タメ語＋絵文字）
+- **ソース注入:** source_articles → プロンプトに注入
+
+### Phase 3: 品質保証 (Quality Assurance)
+- **自動修正:** `checks/auto_fix.py` → JSON修正、フィールド補完
+- **品質チェック:** `checks/quality_check.py` → 7項目スコアリング (score ≥ 90)
+- **ファクトチェック:** `checks/fact_checker.py` → Gemini検証 (fact ≥ 80)
+- **自動リライト:** スコア不足時、最大3回リライト
+- **WordPress下書き保存:** `src/storage_manager.py` → REST API
+
+### Phase 4: 公開管理 (Publication Management)
+- **LINE承認リクエスト:** Flex Message（承認/予約/編集/却下/再生成）
+- **承認 → WordPress公開:** status: draft → publish
+- **編集:** Web UI (`/draft/{id}`) → Markdown編集 + プレビュー
+- **予約公開:** WordPress status: future
+- **却下 → 再生成:** 新しいトレンドで再試行
+
+### 統計・レポート
+- **実行ログ:** Firestore `execution_logs`
+- **日次統計:** Firestore `daily_stats`
+- **GA4レポート:** 週次LINE送信

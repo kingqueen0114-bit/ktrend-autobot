@@ -18,7 +18,7 @@ def handle_line_webhook(request):
     if request.method == 'GET':
         return "OK", 200
 
-    print(">>> Webhook Triggered")
+    log_event("WEBHOOK_TRIGGERED", "Webhook request received")
 
     # Lazy Import LineBotApi to prevent top-level import errors
     from linebot import LineBotApi, WebhookHandler
@@ -38,15 +38,15 @@ def handle_line_webhook(request):
     signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
 
-    print(f"Signature: {signature}")
+    log_event("WEBHOOK_DEBUG", "Signature received", signature_length=len(signature) if signature else 0)
     
     try:
         # Custom handler for Postback
         events = handler.parser.parse(body, signature)
-        print(f"Parsed {len(events)} events")
+        log_event("WEBHOOK_EVENTS_PARSED", f"Parsed {len(events)} events")
         
         for event in events:
-            print(f"Event Type: {type(event)}")
+            log_event("WEBHOOK_EVENT_TYPE", f"Event type: {type(event).__name__}")
             # Handle text messages
             # Note: SDK v1 events are MessageEvent, containing .message which is TextMessage
             from linebot.models import MessageEvent, TextMessage, ImageMessage
@@ -54,7 +54,7 @@ def handle_line_webhook(request):
             if isinstance(event, MessageEvent):
                 if isinstance(event.message, TextMessage):
                     text = event.message.text.strip()
-                    print(f"Received Text Message: {text} from {event.source.user_id}")
+                    log_event("TEXT_MESSAGE_RECEIVED", f"Received text message: {text}")
 
                     # Import line_actions functions
                     from handlers.edit_actions import process_edit_text
@@ -64,17 +64,17 @@ def handle_line_webhook(request):
 
                     # Check for active edit session first
                     if process_edit_text(event.source.user_id, text, line_bot_api):
-                        print(f"Processed edit for user {event.source.user_id[:10]}...")
+                        log_event("EDIT_SESSION_PROCESSED", "Processed edit session for user")
                         continue
 
                     if text in ["ID", "id", "Id", "ミナト"]:
-                       print("Matched ID request")
+                       log_event("ID_REQUEST_MATCHED", "User requested their ID")
                        user_id = event.source.user_id
                        line_bot_api.reply_message(
                            event.reply_token,
                            TextMessage(text=f"Your User ID:\n{user_id}")
                        )
-                       print("Replied with ID")
+                       log_event("ID_REQUEST_REPLIED", "Replied with user ID")
                     elif text in ["ヘルプ", "help", "Help", "HELP"]:
                        help_text = """📰 K-Trend AutoBot ヘルプ
 
@@ -110,7 +110,7 @@ def handle_line_webhook(request):
                            # Execute the analytics reporter directly to avoid refactoring the singleton/env initialization
                            subprocess.run([sys.executable, "-m", "src.analytics_reporter", "daily"], check=True, env=os.environ.copy())
                        except Exception as e:
-                           print(f"Error fetching analytics: {e}")
+                           log_error("ANALYTICS_FETCH_ERROR", "Failed to fetch analytics report", error=e)
                            line_bot_api.push_message(
                                event.source.user_id,
                                TextMessage(text=f"❌ レポートの取得に失敗しました: {e}")
@@ -184,7 +184,7 @@ def handle_line_webhook(request):
                        search_articles(keyword, line_bot_api, event.source.user_id)
                     else:
                         # Trigger On-Demand Generation (Text Topic)
-                        print(f"Triggering On-Demand Text: {text}")
+                        log_event("ONDEMAND_TEXT_TRIGGERED", f"Triggering on-demand generation: {text}")
                         # Immediately reply to user to acknowledge receipt
                         line_bot_api.reply_message(
                             event.reply_token,
@@ -195,7 +195,7 @@ def handle_line_webhook(request):
 
                 elif isinstance(event.message, ImageMessage):
                     from handlers.generation_actions import process_ondemand_image
-                    print("Received Image Message")
+                    log_event("IMAGE_MESSAGE_RECEIVED", "Received image message")
                     line_bot_api.reply_message(
                         event.reply_token,
                         TextMessage(text="画像を受け取りました！解析して記事を作成します...📸🤖")
@@ -384,7 +384,7 @@ def handle_line_webhook(request):
     except InvalidSignatureError:
         return "Invalid Signature", 400
     except Exception as e:
-        print(f"Webhook Error: {e}")
+        log_error("WEBHOOK_ERROR", "Unhandled webhook exception", error=e)
         return "Error", 500
 
     return "OK", 200

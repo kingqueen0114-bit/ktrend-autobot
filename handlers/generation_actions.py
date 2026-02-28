@@ -27,7 +27,7 @@ def process_ondemand_text(topic, line_bot_api, user_id):
 
         trends = fetcher.fetch_trends(topic=clean_topic)
         if not trends:
-            print("No trends found for topic")
+            log_event("ONDEMAND_TEXT_NO_TRENDS", "No trends found for topic", topic=clean_topic)
             return
 
         target = trends[0]
@@ -35,10 +35,10 @@ def process_ondemand_text(topic, line_bot_api, user_id):
         cms_content = generator.generate_cms_article(target)
 
         quality = check_article_quality(cms_content, target)
-        print(f"📊 Quality score: {quality['score']}/100")
+        log_event("QUALITY_CHECK", f"Quality score: {quality['score']}/100", score=quality['score'])
         rewritten = False
         if not quality['passed'] and quality['warnings']:
-            print(f"🔄 Auto-rewriting article...")
+            log_event("ARTICLE_REWRITE", "Auto-rewriting article", warnings=quality['warnings'])
             cms_content = generator.rewrite_article(cms_content, quality['warnings'], target)
             quality = check_article_quality(cms_content, target)
             rewritten = True
@@ -48,7 +48,7 @@ def process_ondemand_text(topic, line_bot_api, user_id):
         artist_tags = cms_content.get('artist_tags', [])
         if artist_tags:
             target['artist_tags'] = artist_tags
-            print(f"🏷️ Artist tags extracted: {artist_tags}")
+            log_event("ARTIST_TAGS_EXTRACTED", "Artist tags extracted", tags=artist_tags)
         wp_result = storage.save_draft_to_wordpress(cms_content, img_url, None, trend_category, artist_tags)
 
         draft_data = {
@@ -78,10 +78,10 @@ def process_ondemand_text(topic, line_bot_api, user_id):
                  'was_rewritten': rewritten
              }
         )
-        print("On-Demand Text Process Complete")
+        log_event("ONDEMAND_TEXT_COMPLETE", "On-demand text process complete", draft_id=draft_id)
 
     except Exception as e:
-        print(f"On-Demand Text Error: {e}")
+        log_error("ONDEMAND_TEXT_ERROR", "On-demand text generation failed", error=e)
         try:
             notifier.send_error_notification(
                 error_type="ONDEMAND_TEXT_ERROR",
@@ -104,7 +104,7 @@ def process_ondemand_image(image_bytes, line_bot_api, user_id):
 
         public_img_url = storage.upload_bytes_to_gcs(image_bytes)
         if not public_img_url:
-            print("Image Upload Failed")
+            log_error("IMAGE_UPLOAD_FAILED", "Image upload to GCS failed")
             return
 
         trend_data = generator.analyze_image_trend(public_img_url)
@@ -112,10 +112,10 @@ def process_ondemand_image(image_bytes, line_bot_api, user_id):
         cms_content = generator.generate_cms_article(trend_data)
 
         quality = check_article_quality(cms_content, trend_data)
-        print(f"📊 Quality score: {quality['score']}/100")
+        log_event("QUALITY_CHECK", f"Quality score: {quality['score']}/100", score=quality['score'])
         rewritten = False
         if not quality['passed'] and quality['warnings']:
-            print(f"🔄 Auto-rewriting article...")
+            log_event("ARTICLE_REWRITE", "Auto-rewriting article", warnings=quality['warnings'])
             cms_content = generator.rewrite_article(cms_content, quality['warnings'], trend_data)
             quality = check_article_quality(cms_content, trend_data)
             rewritten = True
@@ -124,7 +124,7 @@ def process_ondemand_image(image_bytes, line_bot_api, user_id):
         artist_tags = cms_content.get('artist_tags', [])
         if artist_tags:
             trend_data['artist_tags'] = artist_tags
-            print(f"🏷️ Artist tags extracted: {artist_tags}")
+            log_event("ARTIST_TAGS_EXTRACTED", "Artist tags extracted", tags=artist_tags)
         wp_result = storage.save_draft_to_wordpress(cms_content, public_img_url, None, trend_category, artist_tags)
 
         draft_data = {
@@ -154,10 +154,10 @@ def process_ondemand_image(image_bytes, line_bot_api, user_id):
                  'was_rewritten': rewritten
              }
         )
-        print("On-Demand Image Process Complete")
+        log_event("ONDEMAND_IMAGE_COMPLETE", "On-demand image process complete", draft_id=draft_id)
 
     except Exception as e:
-        print(f"On-Demand Image Error: {e}")
+        log_error("ONDEMAND_IMAGE_ERROR", "On-demand image generation failed", error=e)
         try:
             notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
             notifier.send_error_notification(
@@ -232,7 +232,7 @@ def process_category_generate(category, line_bot_api, reply_token, user_id):
         artist_tags = cms_content.get('artist_tags', [])
         if artist_tags:
             target['artist_tags'] = artist_tags
-            print(f"🏷️ Artist tags extracted: {artist_tags}")
+            log_event("ARTIST_TAGS_EXTRACTED", "Artist tags extracted", tags=artist_tags, category=category)
         wp_result = storage.save_draft_to_wordpress(cms_content, img_url, additional_images, category, artist_tags)
 
         draft_data = {

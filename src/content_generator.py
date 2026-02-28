@@ -6,13 +6,10 @@ Generates SNS posts and CMS articles using Gemini AI.
 import os
 import json
 import re
+import requests
 from typing import Dict, List, Optional
 from datetime import datetime
-
-try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
+from utils.logging_config import log_event, log_error
 
 
 class ContentGenerator:
@@ -26,13 +23,43 @@ class ContentGenerator:
             api_key: Gemini API key
         """
         self.api_key = api_key
+        if not self.api_key:
+            log_error("GEMINI_INIT", "Gemini API key not configured")
 
-        if genai and api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-        else:
-            self.model = None
-            print("⚠️ Gemini API not configured")
+    def _call_gemini_rest(self, prompt: str) -> str:
+        """Call Gemini REST API directly with Google Search tool enabled."""
+        if not self.api_key:
+            raise ValueError("API key missing")
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "tools": [{"googleSearch": {}}],
+            "generationConfig": {
+                "temperature": 0.7
+            }
+        }
+        
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+        
+        if response.status_code != 200:
+            log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}", details=response.text)
+        response.raise_for_status()
+
+        data = response.json()
+        
+        # Determine if grounding metadata exists to log it
+        grounding = data.get("candidates", [{}])[0].get("groundingMetadata", {})
+        if grounding:
+            chunks = grounding.get("groundingChunks", [])
+            log_event("GROUNDING_SUCCESS", f"Search Grounding retrieved {len(chunks)} sources", source_count=len(chunks))
+        
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        text = "".join(part.get("text", "") for part in parts)
+        if not text:
+            raise ValueError("Empty response text from Gemini API")
+            
+        return text
 
     def generate_content(self, trend: Dict) -> Dict:
         """
@@ -48,20 +75,16 @@ class ContentGenerator:
         snippet = trend.get("snippet", "")
         category = trend.get("category", "trend")
 
-        if not self.model:
+        if not self.api_key:
             return self._generate_fallback_sns(title, category)
 
         # Import prompts from external module
         from src.content_prompts import build_sns_prompt
 
-        if not self.model:
-            return self._generate_fallback_sns(title, category)
-
         prompt = build_sns_prompt(title, snippet, category)
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self._call_gemini_rest(prompt).strip()
 
             # Extract JSON from response
             json_match = re.search(r'\{[\s\S]*\}', text)
@@ -70,7 +93,7 @@ class ContentGenerator:
             else:
                 return self._generate_fallback_sns(title, category)
         except Exception as e:
-            print(f"⚠️ SNS generation failed: {e}")
+            log_error("SNS_GENERATION_FAILED", "SNS content generation failed", error=e)
             return self._generate_fallback_sns(title, category)
 
     def _generate_fallback_sns(self, title: str, category: str) -> Dict:
@@ -94,12 +117,13 @@ class ContentGenerator:
             "luna_post_b": f"{emoji} これ絶対チェックして！{title}\n\nマジで話題になってる🔥\n\n#韓国トレンド",
         }
 
-    def generate_cms_article(self, trend: Dict) -> Dict:
+    def generate_cms_article(self, trend: Dict, trend_sign_context: str = "") -> Dict:
         """
         Generate a CMS article for a trend.
 
         Args:
             trend: Trend dictionary
+            trend_sign_context: Context about the trend signs to inject
 
         Returns:
             Dictionary with article content (title, body, meta_description, etc.)
@@ -112,14 +136,13 @@ class ContentGenerator:
         # Import prompts from external module
         from src.content_prompts import build_article_prompt, build_sns_prompt
 
-        if not self.model:
+        if not self.api_key:
             return self._generate_fallback_article(title, snippet, category)
 
-        prompt = build_article_prompt(title, snippet, category, link)
+        prompt = build_article_prompt(title, snippet, category, link, trend_sign_context)
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self._call_gemini_rest(prompt).strip()
 
             # Extract JSON from response
             json_match = re.search(r'\{[\s\S]*\}', text)
@@ -131,7 +154,7 @@ class ContentGenerator:
             else:
                 return self._generate_fallback_article(title, snippet, category)
         except Exception as e:
-            print(f"⚠️ Article generation failed: {e}")
+            log_error("ARTICLE_GENERATION_FAILED", "CMS article generation failed", error=e)
             return self._generate_fallback_article(title, snippet, category)
 
     def _generate_fallback_article(self, title: str, snippet: str, category: str) -> Dict:
@@ -162,7 +185,7 @@ class ContentGenerator:
             "category": category,
         }
 
-    def rewrite_article(self, article: Dict, warnings: List[str], trend: Dict) -> Dict:
+    def rewrite_article(self, article: Dict, warnings: List[str], trend: Dict, trend_sign_context: str = "") -> Dict:
         """
         Rewrite an article to address quality warnings.
 
@@ -170,25 +193,34 @@ class ContentGenerator:
             article: Original article dictionary
             warnings: List of quality warnings
             trend: Original trend data
+            trend_sign_context: Optional sign context
 
         Returns:
             Rewritten article dictionary
         """
-        if not self.model:
+        if not self.api_key:
             return article
 
         current_body = article.get("body", "")
         current_title = article.get("title", "")
 
         prompt = f"""
-以下の記事を改善してください。
+以下の記事を最新のインターネット検索結果を用いて改善してください。
 
 現在のタイトル: {current_title}
+元のトレンド概要: {trend.get('snippet')}
+検知されたサイン・兆し: {trend_sign_context}
 現在の本文:
 {current_body}
 
-改善が必要な点:
+改善が必要な点（絶対に修正すること）:
 {chr(10).join(f'- {w}' for w in warnings)}
+
+必須ルール:
+- 文字数は必ず1000文字以上を満たすこと
+- 分析した「流行のサイン（兆し）」を必ず本文に含めること
+- トレンド情報（{trend.get('title', '')}）に関する「具体的な一次情報元のURLやニュースメディア名」を必ずインターネットから検索して本文内に記載すること。これがないと事実確認で減点されます。
+- research_report にこの選定理由とサインの考察を記述すること
 
 出力形式（JSON）:
 {{
@@ -203,8 +235,7 @@ JSONのみ出力してください。
 """
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self._call_gemini_rest(prompt).strip()
 
             json_match = re.search(r'\{[\s\S]*\}', text)
             if json_match:
@@ -216,7 +247,7 @@ JSONのみ出力してください。
             else:
                 return article
         except Exception as e:
-            print(f"⚠️ Rewrite failed: {e}")
+            log_error("ARTICLE_REWRITE_FAILED", "Article rewrite failed", error=e)
             return article
 
 
@@ -246,12 +277,21 @@ def check_article_quality(article: Dict, trend: Dict) -> Dict:
         warnings.append("タイトルが長すぎます（80文字以下推奨）")
         score -= 10
 
-    # Check body length
-    if len(body) < 800:
-        warnings.append("本文が短すぎます（最低800文字、1000文字以上必須）")
-        score -= 40
-    elif len(body) < 1000:
-        warnings.append("本文が短めです（1000文字以上でより充実した内容にしてください）")
+    # Strict check: Body length (Must be 1000+ characters)
+    if len(body) < 1000:
+        warnings.append(f"本文が短すぎます。現在の文字数: {len(body)}文字。絶対に1000文字以上で執筆してください。")
+        score -= 50
+
+    # Strict check: Signs/Signals mention
+    if "兆し" in body or "サイン" in body or "反応" in body or "注目" in body or "熱量" in body or "理由" in body:
+        pass # Mentions trend signals
+    else:
+        warnings.append("「なぜこれが次に流行る兆しなのか」という分析的な視点やサイン（SNSの反応など）への言及が不足しています。必ず組み込んでください。")
+        score -= 50
+
+    # Ensure research report is generated
+    if not article.get("research_report"):
+        warnings.append("内部用のリサーチ報告（research_report）が生成されていません。必ず出力してください。")
         score -= 20
 
     # Check meta description
@@ -279,12 +319,18 @@ def check_article_quality(article: Dict, trend: Dict) -> Dict:
         warnings.append("タグが少ないです（2つ以上推奨）")
         score -= 5
 
+    # Strict check: Source URLs
+    if "http" not in body and "www" not in body and ".com" not in body and ".jp" not in body and "co.jp" not in body:
+        warnings.append("記事本文に一次情報元の具体的なURLが記載されていません。推測ではなく、必ず検索ツールを使用して事実確認リンクを含めてください。")
+        score -= 20
+
     # Ensure score is within bounds
     score = max(0, min(100, score))
 
+    # We enforce a strict 100-point passing score now
     return {
         "score": score,
-        "passed": score >= 60,
+        "passed": score == 100,
         "warnings": warnings,
         "was_rewritten": False,
     }

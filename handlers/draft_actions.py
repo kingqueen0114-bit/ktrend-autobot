@@ -146,13 +146,13 @@ def process_rejection(draft_id, line_bot_api, reply_token):
         wp_post_id = draft.get('wordpress_post_id')
         if wp_post_id:
             storage.delete_wordpress_draft(wp_post_id)
-            print(f"Deleted WordPress draft: {wp_post_id}")
+            log_event("WP_DRAFT_DELETED", f"Deleted WordPress draft: {wp_post_id}", draft_id=draft_id)
         category = draft.get('trend_source', {}).get('category', 'other')
         draft['status'] = 'rejected'
         storage.save_draft(draft, draft_id)
         storage.increment_approval_stat(approved=False)
 
-    print(f"Draft {draft_id} was rejected by user")
+    log_event("DRAFT_REJECTED", f"Draft {draft_id} was rejected by user", draft_id=draft_id)
 
     flex_contents = {
         "type": "bubble",
@@ -262,10 +262,10 @@ def process_regenerate(category, line_bot_api, reply_token, user_id):
             quality_data={'score': quality['score'], 'passed': quality['passed'], 'warnings': quality['warnings'], 'was_rewritten': rewritten},
             additional_images=additional_images
         )
-        print(f"Regenerated article for category {category}: {draft_id}")
+        log_event("REGENERATE_SUCCESS", f"Regenerated article for category {category}", draft_id=draft_id, category=category)
 
     except Exception as e:
-        print(f"Regenerate error: {e}")
+        log_error("REGENERATE_ERROR", f"Regenerate failed for category {category}", error=e)
         try:
             notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
             notifier.send_error_notification("REGENERATE_ERROR", str(e), f"カテゴリ: {category}")
@@ -375,7 +375,7 @@ def process_approve_all(line_bot_api, reply_token):
                 else:
                     fail_count += 1
             except Exception as e:
-                print(f"Error approving draft {draft_id}: {e}")
+                log_error("BULK_APPROVE_ITEM_FAILED", f"Error approving draft {draft_id}", error=e)
                 fail_count += 1
 
         from src.notifier import Notifier
@@ -393,7 +393,6 @@ def process_approve_all(line_bot_api, reply_token):
 
     except Exception as e:
         log_error("BULK_APPROVE_ERROR", str(e), error=e)
-        print(f"Bulk approve error: {e}")
 
 def process_schedule(draft_id, hours, line_bot_api, reply_token):
     """Schedule a draft for future publication."""

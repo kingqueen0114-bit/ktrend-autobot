@@ -7,8 +7,10 @@ import os
 import requests
 import json
 import random
+import re
 from typing import List, Dict, Optional
 from datetime import datetime
+from utils.logging_config import log_event, log_error
 
 try:
     import google.generativeai as genai
@@ -65,12 +67,6 @@ class TrendFetcher:
         self.search_api_key = os.environ.get("GOOGLE_CUSTOM_SEARCH_API_KEY")
         self.search_engine_id = os.environ.get("GOOGLE_CSE_ID")
 
-        if genai and api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-        else:
-            self.model = None
-
     def _search_google(self, query: str, num_results: int = 5) -> List[Dict]:
         """
         Search Google using Custom Search API.
@@ -83,20 +79,19 @@ class TrendFetcher:
         Returns:
             List of search results
         """
-        print(f"⚠️ Google Search API bypassing, forcing Gemini fallback...")
+        log_event("GOOGLE_SEARCH_BYPASS", "Google Search API bypassed, using Gemini fallback")
         return self._search_with_gemini(query)
 
     def _search_with_gemini(self, query: str) -> List[Dict]:
-        """Fallback search using Gemini when Google Custom Search fails."""
-        if not self.model:
-            print("⚠️ Gemini model not available for fallback search")
+        """Fallback search using Gemini REST API when Google Custom Search fails."""
+        if not self.api_key:
+            log_error("GEMINI_API_KEY_MISSING", "Gemini API key not available for fallback search")
             return []
 
         try:
-            import json
             prompt = f"""あなたは韓国トレンド情報の専門家です。「{query}」に関する最新のトレンド情報を3つ提供してください。
 以下の条件を厳守してください：
-1. ただの事実ではなく、「韓国で今リアルに流行っていること」「これから日本でも流行りそうなこと」「日本人が知ると面白いと感じるポイント」を含めること。
+1. ただの事実やニュースの要約ではなく、SNSでのユーザーの反応や、他ブランドとのコラボ、市場の動きなど「なぜ今これが流行る兆しなのか」という流行のサイン（兆し）を必ず含めること。
 2. K-POPアイドルの情報の場合は、PR TIMES等の公式プレスリリースやInstagramでの発言など、具体的なソースや一次情報を意識した内容にすること。
 3. 推測ではなく、事実に基づいた最新情報を出力すること。
 
@@ -105,29 +100,60 @@ class TrendFetcher:
   {{
     "title": "トレンドのタイトル（魅力的で具体的なもの）",
     "link": "参考になるURL（公式ニュース、PR TIMES、Instagramリンクなど。架空のものでも形式が合っていれば可）",
-    "snippet": "トレンドの具体的な内容。なぜ話題なのか、日本での流行予測などを含めた150文字程度の解説。"
+    "snippet": "トレンドの具体的な内容。ただの事実ではなく、なぜ話題なのか、どのような「流行のサイン」があるのかを含めた150文字程度の解説。"
   }}
 ]
 - linkはダミーURLで構いません"""
 
-            # Use Google Search Retrieval tool to get the latest news
-            tool = {"google_search_retrieval": {}} if hasattr(genai, "protos") else "google_search_retrieval"
-            response = self.model.generate_content(prompt, tools=tool)
-            text = response.text.strip()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "tools": [{"googleSearch": {}}],
+                "generationConfig": {
+                    "temperature": 0.7
+                }
+            }
 
-            # Extract JSON from response
-            if '```' in text:
-                text = text.split('```')[1]
-                if text.startswith('json'):
-                    text = text[4:]
-                text = text.strip()
+            response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+            
+            if response.status_code != 200:
+                log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}")
+            response.raise_for_status()
 
-            results = json.loads(text)
-            print(f"✅ Gemini fallback: {len(results)} trends generated")
+            data = response.json()
+            parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            text = "".join(part.get("text", "") for part in parts)
+
+            text = text.strip()
+            
+            # Clean markdown code blocks if present
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0].strip()
+
+            # Aggressively extract JSON array using string manipulation
+            start_idx = text.find('[')
+            end_idx = text.rfind(']')
+            
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                json_str = text[start_idx:end_idx+1]
+                try:
+                    results = json.loads(json_str)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Extracted string is not valid JSON. Error: {e}, String: {json_str[:100]}...")
+            else:
+                raise ValueError(f"No JSON array brackets found in response: {text[:100]}...")
+                    
+            log_event("GEMINI_FALLBACK_SUCCESS", f"Gemini fallback generated trends", count=len(results))
+            # We need to return BOTH trends and signs context to match the tuple expectation!
+            # Since fetch_trends calls this and returns trends directly, let's look at the fetch_trends signature.
+            # Wait, fetch_trends expects to return `return trends` not a tuple. Let's check test_debug_flow.py.
             return results
         except Exception as e:
-            print(f"⚠️ Gemini fallback also failed: {e}")
-            return []
+            error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {str(e)}"
+            log_error("GEMINI_FALLBACK_FAILED", error_msg, error=e)
+            raise RuntimeError(error_msg)
 
     def _extract_image(self, search_result: Dict) -> Optional[str]:
         """
@@ -203,7 +229,7 @@ class TrendFetcher:
         Returns:
             List of trend dictionaries
         """
-        print(f"🔍 Fetching Korean trends (include_kpop={include_kpop}, topic={topic})")
+        log_event("FETCH_TRENDS_START", "Fetching Korean trends", include_kpop=include_kpop, topic=topic)
 
         # Select queries
         if topic:
@@ -267,7 +293,7 @@ class TrendFetcher:
             if len(trends) >= limit:
                 break
 
-        print(f"✅ Fetched {len(trends)} trends")
+        log_event("FETCH_TRENDS_COMPLETE", "Trend fetching completed", count=len(trends))
         return trends
 
 
