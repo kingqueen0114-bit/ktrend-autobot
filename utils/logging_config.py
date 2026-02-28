@@ -4,8 +4,25 @@ Provides Cloud Logging compatible JSON output.
 """
 import json
 import logging
+import re
 import sys
 from datetime import datetime
+
+
+def mask_url_keys(text: str) -> str:
+    """Mask API keys in URLs within log messages."""
+    if not isinstance(text, str):
+        return str(text)
+    return re.sub(r'([?&])key=[^&\s"\']+', r'\1key=***MASKED***', text)
+
+
+class SafeJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles non-serializable objects."""
+    def default(self, obj):
+        try:
+            return super().default(obj)
+        except TypeError:
+            return str(obj)
 
 
 class StructuredLogFormatter(logging.Formatter):
@@ -15,7 +32,7 @@ class StructuredLogFormatter(logging.Formatter):
         log_entry = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "severity": record.levelname,
-            "message": record.getMessage(),
+            "message": mask_url_keys(record.getMessage()),
             "logger": record.name,
             "function": record.funcName,
         }
@@ -34,9 +51,9 @@ class StructuredLogFormatter(logging.Formatter):
 
         # Add exception info if present
         if record.exc_info:
-            log_entry['exception'] = self.formatException(record.exc_info)
+            log_entry['exception'] = mask_url_keys(self.formatException(record.exc_info))
 
-        return json.dumps(log_entry, ensure_ascii=False)
+        return json.dumps(log_entry, ensure_ascii=False, cls=SafeJSONEncoder)
 
 
 def setup_logging():
@@ -66,7 +83,7 @@ def log_event(event_type: str, message: str, **extra):
         level=logging.INFO,
         pathname='',
         lineno=0,
-        msg=f"[{event_type}] {message}",
+        msg=f"[{event_type}] {mask_url_keys(message)}",
         args=(),
         exc_info=None
     )
@@ -82,7 +99,7 @@ def log_error(event_type: str, message: str, error: Exception = None, **extra):
         level=logging.ERROR,
         pathname='',
         lineno=0,
-        msg=f"[{event_type}] {message}",
+        msg=f"[{event_type}] {mask_url_keys(message)}",
         args=(),
         exc_info=(type(error), error, error.__traceback__) if error else None
     )

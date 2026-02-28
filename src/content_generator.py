@@ -9,7 +9,7 @@ import re
 import requests
 from typing import Dict, List, Optional
 from datetime import datetime
-from utils.logging_config import log_event, log_error
+from utils.logging_config import log_event, log_error, mask_url_keys
 
 
 class ContentGenerator:
@@ -44,7 +44,12 @@ class ContentGenerator:
         
         if response.status_code != 200:
             log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}", details=response.text)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                mask_url_keys(str(e)), response=e.response
+            ) from None
 
         data = response.json()
         
