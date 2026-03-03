@@ -195,6 +195,18 @@ def process_rejection(draft_id, line_bot_api, reply_token):
         if wp_post_id:
             storage.delete_wordpress_draft(wp_post_id)
             log_event("WP_DRAFT_DELETED", f"Deleted WordPress draft: {wp_post_id}", draft_id=draft_id)
+
+        # Sanity下書きも削除
+        sanity_draft_id = draft.get('sanity_draft_id') or draft_id
+        if sanity_draft_id:
+            try:
+                from src.sanity_client import delete as sanity_delete
+                plain_id = sanity_draft_id.replace("drafts.", "")
+                sanity_delete(f"drafts.{plain_id}")
+                log_event("SANITY_DRAFT_DELETED", f"Deleted Sanity draft: drafts.{plain_id}", draft_id=draft_id)
+            except Exception as e:
+                logger.warning(f"Sanity下書き削除失敗: {e}")
+
         category = draft.get('trend_source', {}).get('category', 'other')
         draft['status'] = 'rejected'
         storage.save_draft(draft, draft_id)
