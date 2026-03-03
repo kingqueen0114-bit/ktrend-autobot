@@ -113,12 +113,13 @@ def recover_failed_draft(draft_id: str) -> bool:
         last_action = error_state.get('last_action', '')
 
         if error_type == 'wordpress_publish' or last_action == 'publish':
-            # Re-attempt WordPress publish
-            log_event("RECOVERY_ATTEMPT", f"Retrying WordPress publish for {draft_id}")
+            # Re-attempt publish (Sanity)
+            log_event("RECOVERY_ATTEMPT", f"Retrying publish for {draft_id}")
             cms_content = draft_data.get('cms_content', {})
             image_id = draft_data.get('wordpress_image_id')
+            sanity_draft_id = draft_data.get('sanity_draft_id') or draft_id
 
-            result = storage.publish_to_wordpress(cms_content, image_id)
+            result = storage.publish_to_wordpress(cms_content, image_id, draft_id=sanity_draft_id)
             if result.get('url'):
                 draft_ref.update({
                     'status': 'approved',
@@ -127,7 +128,7 @@ def recover_failed_draft(draft_id: str) -> bool:
                     'error_state': {},
                     'recovered_at': datetime.now().isoformat()
                 })
-                log_event("RECOVERY_SUCCESS", f"Draft {draft_id} recovered - published to WordPress")
+                log_event("RECOVERY_SUCCESS", f"Draft {draft_id} recovered - published")
                 return True
 
         elif error_type == 'image_upload' or last_action == 'image_upload':

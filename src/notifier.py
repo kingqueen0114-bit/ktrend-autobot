@@ -1,4 +1,6 @@
 import os
+import hmac
+import hashlib
 import requests
 import json
 from typing import Dict
@@ -213,7 +215,7 @@ class Notifier:
         import random
         return random.choice(fallback_images)
 
-    def send_approval_request(self, content: Dict, image_url: str, draft_id: str = None, wp_post_id: int = None, wp_preview_url: str = None, quality_data: Dict = None, additional_images: list = None):
+    def send_approval_request(self, content: Dict, image_url: str, draft_id: str = None, wp_post_id: int = None, wp_preview_url: str = None, quality_data: Dict = None, additional_images: list = None, slug: str = None):
         """
         Sends a Flex Message with an Approval Button (Postback) to one or multiple users.
 
@@ -295,14 +297,18 @@ class Notifier:
         if wp_post_id:
             postback_data += f"&wp_post_id={wp_post_id}"
 
-        # Pre-calculate URIs for buttons
-        app_url = os.environ.get("APP_URL", "https://ktrend-autobot-nnfhuwwfiq-an.a.run.app")
-        edit_uri = f"{app_url}/view-draft?id={draft_id}"
-        # Always use view-draft for preview (no WordPress login required)
-        wp_confirm_uri = f"{app_url}/view-draft?id={draft_id}&tab=preview"
+        # Pre-calculate URIs for buttons (Next.js frontend)
+        next_app_url = os.environ.get("NEXT_APP_URL", "https://k-trendtimes.com")
+        edit_secret = os.environ.get("EDIT_SECRET", "")
+        preview_secret = os.environ.get("PREVIEW_SECRET", "")
 
-        # VERSION CHECK: 2026-02-11-14:15 - Button type should be URI
-        log_event("NOTIFIER_VERSION_CHECK", "Notifier version check", version="2026-02-11-14:15", edit_uri_prefix=edit_uri[:50])
+        # HMAC token for edit URL authentication
+        edit_token = hmac.new(edit_secret.encode(), draft_id.encode(), hashlib.sha256).hexdigest() if edit_secret else ""
+        edit_uri = f"{next_app_url}/edit/{draft_id}?token={edit_token}"
+
+        # Preview URL (uses Next.js API preview route)
+        cms_slug = slug or content.get('slug', draft_id)
+        preview_uri = f"{next_app_url}/api/preview?slug={cms_slug}&secret={preview_secret}"
 
         headers = {
             "Content-Type": "application/json",
@@ -406,29 +412,65 @@ class Notifier:
                 },
                 "footer": {
                     "type": "box",
-                    "layout": "horizontal",
+                    "layout": "vertical",
                     "spacing": "sm",
                     "contents": [
                         {
-                            "type": "button",
-                            "style": "primary",
-                            "height": "sm",
-                            "action": {
-                                "type": "uri",
-                                "label": "📖 記事を開く",
-                                "uri": edit_uri
-                            }
+                            "type": "box",
+                            "layout": "horizontal",
+                            "spacing": "sm",
+                            "contents": [
+                                {
+                                    "type": "button",
+                                    "style": "primary",
+                                    "height": "sm",
+                                    "color": "#1DB446",
+                                    "action": {
+                                        "type": "postback",
+                                        "label": "✅ 承認",
+                                        "data": postback_data,
+                                        "displayText": "承認しました"
+                                    }
+                                },
+                                {
+                                    "type": "button",
+                                    "style": "primary",
+                                    "height": "sm",
+                                    "action": {
+                                        "type": "uri",
+                                        "label": "✏️ 編集",
+                                        "uri": edit_uri
+                                    }
+                                }
+                            ]
                         },
                         {
-                            "type": "button",
-                            "style": "secondary",
-                            "height": "sm",
-                            "action": {
-                                "type": "postback",
-                                "label": "❌ 却下",
-                                "data": f"action=reject&draft_id={draft_id}",
-                                "displayText": "却下しました"
-                            }
+                            "type": "box",
+                            "layout": "horizontal",
+                            "spacing": "sm",
+                            "contents": [
+                                {
+                                    "type": "button",
+                                    "style": "secondary",
+                                    "height": "sm",
+                                    "action": {
+                                        "type": "uri",
+                                        "label": "👁️ プレビュー",
+                                        "uri": preview_uri
+                                    }
+                                },
+                                {
+                                    "type": "button",
+                                    "style": "secondary",
+                                    "height": "sm",
+                                    "action": {
+                                        "type": "postback",
+                                        "label": "❌ 却下",
+                                        "data": f"action=reject&draft_id={draft_id}",
+                                        "displayText": "却下しました"
+                                    }
+                                }
+                            ]
                         }
                     ]
                 }
@@ -439,13 +481,6 @@ class Notifier:
             **recipient_payload,
             "messages": [flex_message]
         }
-
-        # DEBUG: Log button action type to verify deployment
-        try:
-            edit_button_action = payload["messages"][0]["contents"]["body"]["contents"][-1]["contents"][0]["action"]
-            log_event("EDIT_BUTTON_TYPE_CHECK", "Edit button type verified", button_type=edit_button_action.get('type'), version="2026-02-11-14:15")
-        except:
-            log_event("EDIT_BUTTON_TYPE_CHECK_FAILED", "Could not extract button type for verification")
 
         try:
             response = requests.post(api_endpoint, headers=headers, data=json.dumps(payload))

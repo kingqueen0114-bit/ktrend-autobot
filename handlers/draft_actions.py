@@ -3,9 +3,13 @@ Draft action handlers for K-Trend AutoBot.
 Handles approval, rejection, scheduling, and regeneration of drafts.
 """
 import os
+import logging
 from datetime import datetime
 from utils.logging_config import log_event, log_error
 from utils.helpers import generate_hashtags, mark_draft_error, recover_failed_draft
+from src.x_poster import post_tweet as post_to_x
+
+logger = logging.getLogger(__name__)
 
 def process_approval(draft_id, line_bot_api, reply_token):
     """Handle approval - publish WordPress draft"""
@@ -24,12 +28,14 @@ def process_approval(draft_id, line_bot_api, reply_token):
          line_bot_api.reply_message(reply_token, TextMessage(text="ℹ️ この記事はすでに公開されています。"))
          return
 
+    # Sanity移行: draft_idを優先的に使用（wp_post_idは旧互換）
+    sanity_draft_id = draft.get('sanity_draft_id') or draft_id
     wp_post_id = draft.get('wordpress_post_id') or draft.get('wordpress_id')
     img_url = draft.get('trend_source', {}).get('image_url')
     cms_content = draft.get('cms_content', {})
     category = draft.get('trend_source', {}).get('category')
     artist_tags = draft.get('trend_source', {}).get('artist_tags', [])
-    result = storage.publish_to_wordpress(cms_content, img_url, category=category, artist_tags=artist_tags, wp_post_id=wp_post_id)
+    result = storage.publish_to_wordpress(cms_content, img_url, category=category, artist_tags=artist_tags, wp_post_id=wp_post_id, draft_id=sanity_draft_id)
 
     if result:
         draft['status'] = 'approved'
@@ -38,44 +44,84 @@ def process_approval(draft_id, line_bot_api, reply_token):
         storage.save_draft(draft, draft_id)
         storage.increment_approval_stat(approved=True)
 
+        # X自動投稿
+        x_result = {"success": False}
+        try:
+            x_text = cms_content.get("x_post_1", "")
+            published_url = result.get("url", "")
+            img_url_for_x = draft.get("trend_source", {}).get("image_url", "")
+            if x_text and published_url:
+                x_result = post_to_x(x_text, published_url, img_url_for_x)
+        except Exception as e:
+            logger.warning(f"X投稿でエラー（記事公開は正常完了）: {e}")
+
         article_title = draft.get('cms_content', {}).get('title', '記事')[:40]
         quality_score = draft.get('quality_score', 0)
 
         from linebot.models import FlexSendMessage
+        flex_body_contents = [
+            {"type": "text", "text": "✅ 公開完了!", "weight": "bold", "size": "xl", "color": "#1DB446"},
+            {"type": "text", "text": article_title, "wrap": True, "size": "md", "margin": "md"},
+            {"type": "separator", "margin": "lg"},
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "md",
+                "contents": [
+                    {"type": "text", "text": "品質スコア", "size": "sm", "color": "#666666", "flex": 1},
+                    {"type": "text", "text": f"{quality_score}/100", "size": "sm", "weight": "bold", "align": "end", "flex": 1}
+                ]
+            }
+        ]
+
+        # X投稿成功時はステータスを表示
+        if x_result.get("success"):
+            flex_body_contents.append({
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "sm",
+                "contents": [
+                    {"type": "text", "text": "X投稿", "size": "sm", "color": "#666666", "flex": 1},
+                    {"type": "text", "text": "投稿済み", "size": "sm", "weight": "bold", "color": "#1DA1F2", "align": "end", "flex": 1}
+                ]
+            })
+
+        footer_buttons = [
+            {
+                "type": "button",
+                "style": "primary",
+                "action": {
+                    "type": "uri",
+                    "label": "📖 記事を見る",
+                    "uri": result['url']
+                }
+            }
+        ]
+
+        # X投稿成功時はツイートURLボタンも追加
+        if x_result.get("success") and x_result.get("tweet_url"):
+            footer_buttons.append({
+                "type": "button",
+                "style": "secondary",
+                "action": {
+                    "type": "uri",
+                    "label": "🐦 Xの投稿を見る",
+                    "uri": x_result["tweet_url"]
+                }
+            })
+
         flex_contents = {
             "type": "bubble",
             "body": {
                 "type": "box",
                 "layout": "vertical",
-                "contents": [
-                    {"type": "text", "text": "✅ 公開完了!", "weight": "bold", "size": "xl", "color": "#1DB446"},
-                    {"type": "text", "text": article_title, "wrap": True, "size": "md", "margin": "md"},
-                    {"type": "separator", "margin": "lg"},
-                    {
-                        "type": "box",
-                        "layout": "horizontal",
-                        "margin": "md",
-                        "contents": [
-                            {"type": "text", "text": "品質スコア", "size": "sm", "color": "#666666", "flex": 1},
-                            {"type": "text", "text": f"{quality_score}/100", "size": "sm", "weight": "bold", "align": "end", "flex": 1}
-                        ]
-                    }
-                ]
+                "contents": flex_body_contents
             },
             "footer": {
                 "type": "box",
                 "layout": "vertical",
-                "contents": [
-                    {
-                        "type": "button",
-                        "style": "primary",
-                        "action": {
-                            "type": "uri",
-                            "label": "📖 記事を見る",
-                            "uri": result['url']
-                        }
-                    }
-                ]
+                "spacing": "sm",
+                "contents": footer_buttons
             }
         }
 
@@ -103,11 +149,13 @@ def process_approval(draft_id, line_bot_api, reply_token):
                 x_message += f"【案2】\n{x_post_2}\n\n"
             x_message += f"📎 {result['url']}\n\n"
             x_message += f"🏷️ おすすめタグ: {hashtag_str}"
+            if x_result.get("success") and x_result.get("tweet_url"):
+                x_message += f"\n\n✅ X自動投稿済み: {x_result['tweet_url']}"
             user_id = os.environ.get("LINE_USER_ID").split(",")[0]
             line_bot_api_push.push_message(user_id, TextMessage(text=x_message))
     else:
         log_error("APPROVAL_FAILED", f"Failed to publish draft", draft_id=draft_id)
-        mark_draft_error(draft_id, "wordpress_publish", "Failed to publish to WordPress", "publish")
+        mark_draft_error(draft_id, "wordpress_publish", "Failed to publish article", "publish")
 
         from linebot.models import FlexSendMessage
         retry_flex = {
@@ -117,7 +165,7 @@ def process_approval(draft_id, line_bot_api, reply_token):
                 "layout": "vertical",
                 "contents": [
                     {"type": "text", "text": "❌ 公開失敗", "weight": "bold", "size": "lg", "color": "#F44336"},
-                    {"type": "text", "text": "WordPressへの公開に失敗しました。", "wrap": True, "size": "sm", "margin": "md"},
+                    {"type": "text", "text": "記事の公開に失敗しました。", "wrap": True, "size": "sm", "margin": "md"},
                     {"type": "text", "text": "ネットワーク状態を確認後、再試行してください。", "wrap": True, "size": "xs", "color": "#666666", "margin": "sm"}
                 ]
             },
@@ -260,7 +308,8 @@ def process_regenerate(category, line_bot_api, reply_token, user_id):
             wp_post_id=wp_result["id"] if wp_result else None,
             wp_preview_url=wp_result.get("preview_url") if wp_result else None,
             quality_data={'score': quality['score'], 'passed': quality['passed'], 'warnings': quality['warnings'], 'was_rewritten': rewritten},
-            additional_images=additional_images
+            additional_images=additional_images,
+            slug=wp_result.get("slug") if wp_result else None
         )
         log_event("REGENERATE_SUCCESS", f"Regenerated article for category {category}", draft_id=draft_id, category=category)
 
@@ -359,12 +408,13 @@ def process_approve_all(line_bot_api, reply_token):
             draft = doc.to_dict()
             draft_id = doc.id
             try:
+                sanity_draft_id = draft.get('sanity_draft_id') or draft_id
                 wp_post_id = draft.get('wordpress_post_id') or draft.get('wordpress_id')
                 cms_content = draft.get('cms_content', {})
                 img_url = draft.get('trend_source', {}).get('image_url')
                 category = draft.get('trend_source', {}).get('category')
                 artist_tags = draft.get('trend_source', {}).get('artist_tags', [])
-                result = storage.publish_to_wordpress(cms_content, img_url, category=category, artist_tags=artist_tags, wp_post_id=wp_post_id)
+                result = storage.publish_to_wordpress(cms_content, img_url, category=category, artist_tags=artist_tags, wp_post_id=wp_post_id, draft_id=sanity_draft_id)
                 if result:
                     draft['status'] = 'approved'
                     draft['wordpress_url'] = result['url']
@@ -372,6 +422,18 @@ def process_approve_all(line_bot_api, reply_token):
                     storage.save_draft(draft, draft_id)
                     storage.increment_approval_stat(approved=True)
                     success_count += 1
+
+                    # X自動投稿
+                    try:
+                        x_text = cms_content.get("x_post_1", "")
+                        published_url = result.get("url", "")
+                        img_url_for_x = draft.get("trend_source", {}).get("image_url", "")
+                        if x_text and published_url:
+                            x_result = post_to_x(x_text, published_url, img_url_for_x)
+                            if x_result.get("success"):
+                                log_event("X_POST_SUCCESS", f"X auto-post for draft {draft_id}", tweet_url=x_result.get("tweet_url", ""))
+                    except Exception as xe:
+                        logger.warning(f"X投稿でエラー（記事公開は正常完了）: {xe}")
                 else:
                     fail_count += 1
             except Exception as e:
@@ -395,11 +457,11 @@ def process_approve_all(line_bot_api, reply_token):
         log_error("BULK_APPROVE_ERROR", str(e), error=e)
 
 def process_schedule(draft_id, hours, line_bot_api, reply_token):
-    """Schedule a draft for future publication."""
+    """Schedule a draft for future publication via Sanity publishedAt."""
     from src.storage_manager import StorageManager
+    from src import sanity_client
     from linebot.models import TextMessage, FlexSendMessage
     from datetime import timedelta
-    import requests
 
     storage = StorageManager()
 
@@ -409,24 +471,17 @@ def process_schedule(draft_id, hours, line_bot_api, reply_token):
             line_bot_api.reply_message(reply_token, TextMessage(text="⚠️ ドラフトが見つかりませんでした。"))
             return
 
-        wp_post_id = draft.get('wordpress_post_id')
-        if not wp_post_id:
-            line_bot_api.reply_message(reply_token, TextMessage(text="⚠️ WordPress投稿IDが見つかりませんでした。"))
-            return
-
         scheduled_time = datetime.utcnow() + timedelta(hours=hours)
         scheduled_time_jst = scheduled_time + timedelta(hours=9)
 
-        headers = storage._get_wp_auth_header()
-        headers["Content-Type"] = "application/json"
+        # SanityドラフトにpublishedAtを設定して予約公開
+        sanity_draft_id = draft.get('sanity_draft_id') or draft_id
+        plain_id = sanity_draft_id.replace("drafts.", "")
+        sanity_doc_id = f"drafts.{plain_id}"
 
-        response = requests.post(
-            f"{storage.wp_url}/wp-json/wp/v2/posts/{wp_post_id}",
-            headers=headers,
-            json={"status": "future", "date": scheduled_time.strftime("%Y-%m-%dT%H:%M:%S")},
-            timeout=60
-        )
-        response.raise_for_status()
+        sanity_client.patch(sanity_doc_id, set_fields={
+            "publishedAt": scheduled_time.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+        })
 
         draft['status'] = 'scheduled'
         draft['scheduled_time'] = scheduled_time.isoformat()

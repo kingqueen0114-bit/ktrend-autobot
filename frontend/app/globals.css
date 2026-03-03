@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #f84643;
+  --color-text: #292929;
+  --color-text-sub: #67737e;
+  --color-footer-bg: #191919;
+}
+
+body {
+  font-family: var(--font-noto-sans-jp), 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-encode-sans), 'Encode Sans Condensed', var(--font-noto-sans-jp), sans-serif;
+}
+
+/* Scrollbar hide for category nav */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Ad container */
+.ad-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Prose custom styles for article body */
+.prose-custom {
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.prose-custom a {
+  color: #f84643;
+  text-decoration: underline;
+}
+
+.prose-custom a:hover {
+  opacity: 0.8;
+}
+
+.prose-custom h2 {
+  border-left: 4px solid #f84643;
+  padding-left: 12px;
+  border-bottom: none;
+}

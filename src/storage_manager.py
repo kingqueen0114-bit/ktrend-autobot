@@ -1,157 +1,453 @@
+"""Sanity CMS ストレージマネージャー
+
+WordPress REST APIの代わりにSanity Mutations API / GROQ / Assets APIを使用。
+ドラフト管理: drafts.{id} プレフィックスでSanityネイティブDraftを活用。
+"""
+
 import os
 import re
-import json
-import base64
+import logging
 import requests
+import hmac
+import hashlib
+from io import BytesIO
 from datetime import datetime
+
 from google.cloud import firestore
-from google.cloud import storage
-from google.oauth2.service_account import Credentials
+from src import sanity_client
+from src.portable_text_builder import markdown_to_portable_text
 from utils.logging_config import log_event, log_error
 
-# WordPressカテゴリslug → ID マッピング
-CATEGORY_IDS = {
-    "artist": 11,
-    "beauty": 7,
-    "fashion": 10,
-    "gourmet": 6,
-    "koreantrip": 4,
-    "event": 5,
-    "trend": 3,
-    "news": 2,
-    "interview": 8,
-    "column": 9,
+logger = logging.getLogger(__name__)
+
+
+def _sanitize_highlights(highlights) -> list:
+    """highlights フィールドの型安全なサニタイズ"""
+    if not isinstance(highlights, list):
+        return []
+    return [h for h in highlights if isinstance(h, str) and h.strip()]
+
+
+# カテゴリマッピング（トレンドカテゴリ → Sanityカテゴリslug）
+TREND_TO_CATEGORY = {
+    "artist": "artist",
+    "beauty": "beauty",
+    "fashion": "fashion",
+    "food": "gourmet",
+    "travel": "koreantrip",
+    "event": "event",
+    "drama": "trend",
+    "other": "trend",
 }
 
-# トレンドカテゴリ → WordPressカテゴリマッピング
-TREND_TO_WP_CATEGORY = {
-    "artist": "artist",      # K-pop, アイドル
-    "beauty": "beauty",      # コスメ、スキンケア
-    "fashion": "fashion",    # ファッション
-    "food": "gourmet",       # グルメ、カフェ
-    "travel": "koreantrip",  # 韓国旅行
-    "event": "event",        # イベント、コンサート
-    "drama": "trend",        # ドラマ
-    "other": "trend",        # その他
+# Sanityカテゴリslug一覧（旧CATEGORY_IDS互換）
+CATEGORY_SLUGS = {
+    "artist": "artist",
+    "beauty": "beauty",
+    "fashion": "fashion",
+    "gourmet": "gourmet",
+    "koreantrip": "koreantrip",
+    "event": "event",
+    "trend": "trend",
+    "lifestyle": "lifestyle",
+    "news": "trend",
+    "interview": "lifestyle",
+    "column": "lifestyle",
 }
 
+# 旧互換: get_wp_category_id → get_category_slug
+def get_wp_category_id(trend_category: str) -> str:
+    """トレンドカテゴリからSanityカテゴリslugを取得（旧互換関数名）"""
+    wp_cat = TREND_TO_CATEGORY.get(trend_category, "trend")
+    return CATEGORY_SLUGS.get(wp_cat, "trend")
 
-def get_wp_category_id(trend_category: str) -> int:
-    """トレンドカテゴリからWordPressカテゴリIDを取得"""
-    wp_category = TREND_TO_WP_CATEGORY.get(trend_category, "trend")
-    return CATEGORY_IDS.get(wp_category, CATEGORY_IDS["trend"])
+
+# カテゴリ参照キャッシュ
+_category_ref_cache = {}
+
 
 class StorageManager:
+    """Sanity CMS ストレージマネージャー"""
+
     def __init__(self):
-        self.project_id = os.getenv("GCP_PROJECT_ID")
-        self.bucket_name = "k-trend-autobot"
+        self.next_app_url = os.environ.get("NEXT_APP_URL", "https://k-trendtimes.com")
+        self.edit_secret = os.environ.get("EDIT_SECRET", "")
+        self.preview_secret = os.environ.get("PREVIEW_SECRET", "")
+
+        # GCS (画像一時保存用、LINE画像アップロード用)
+        self.gcs_bucket = os.environ.get("GCS_BUCKET", "ktrend-autobot-images")
+
+        # Firestore
         self.collection_name = "article_drafts"
         self.logs_collection = "execution_logs"
         self.stats_collection = "daily_stats"
         self.sessions_collection = "edit_sessions"
+        self.db = firestore.Client()
 
-        # WordPress設定
-        self.wp_url = os.getenv("WORDPRESS_URL", "https://k-trendtimes.com")
-        self.wp_user = os.getenv("WORDPRESS_USER", "admin")
-        self.wp_app_password = os.getenv("WORDPRESS_APP_PASSWORD", "")
+    def _get_category_ref(self, category_slug: str) -> str:
+        """カテゴリslugからSanity参照IDを取得"""
+        if category_slug in _category_ref_cache:
+            return _category_ref_cache[category_slug]
 
-        # Load Credentials
-        key_path = os.getenv("GCP_SA_KEY_PATH")
-        creds = None
+        result = sanity_client.query_one(
+            '*[_type == "category" && slug.current == $slug]{_id}',
+            {"slug": category_slug}
+        )
 
-        scopes = [
-            'https://www.googleapis.com/auth/cloud-platform',
-        ]
+        if result:
+            _category_ref_cache[category_slug] = result["_id"]
+            return result["_id"]
 
-        if key_path and os.path.exists(key_path):
-             creds = Credentials.from_service_account_file(key_path, scopes=scopes)
+        logger.warning(f"カテゴリが見つかりません: {category_slug}")
+        return ""
 
-        # Firestore & Storage
-        self.db = firestore.Client(project=self.project_id, credentials=creds)
-        self.storage_client = storage.Client(project=self.project_id, credentials=creds)
-        self.bucket = self.storage_client.bucket(self.bucket_name)
+    def _generate_edit_token(self, draft_id: str) -> str:
+        """編集URL用のHMACトークンを生成"""
+        if not self.edit_secret:
+            return ""
+        return hmac.new(
+            self.edit_secret.encode(),
+            draft_id.encode(),
+            hashlib.sha256
+        ).hexdigest()
 
-    def _get_wp_auth_header(self) -> dict:
-        """WordPress Application Password認証ヘッダーを生成"""
-        credentials = f"{self.wp_user}:{self.wp_app_password}"
-        encoded = base64.b64encode(credentials.encode()).decode()
-        return {
-            "Authorization": f"Basic {encoded}",
+    def get_or_create_tag(self, tag_name: str) -> str:
+        """タグを検索し、なければ作成してSanity _idを返す"""
+        tag_name = tag_name.strip()
+        if not tag_name:
+            return ""
+
+        # slugを生成（小文字、スペースをハイフンに）
+        slug = re.sub(r'[^\w\s-]', '', tag_name.lower())
+        slug = re.sub(r'[\s]+', '-', slug).strip('-')
+
+        # 既存タグを検索
+        existing = sanity_client.query_one(
+            '*[_type == "tag" && (title == $name || slug.current == $slug)]{_id}',
+            {"name": tag_name, "slug": slug}
+        )
+
+        if existing:
+            return existing["_id"]
+
+        # 新規作成
+        tag_id = sanity_client.generate_id()
+        result = sanity_client.create({
+            "_id": tag_id,
+            "_type": "tag",
+            "title": tag_name,
+            "slug": {"_type": "slug", "current": slug},
+        })
+
+        logger.info(f"タグ作成: {tag_name} (id: {tag_id})")
+        return tag_id
+
+    def get_tag_refs(self, tag_names: list) -> list:
+        """タグ名リストからSanity参照配列を返す"""
+        refs = []
+        for name in tag_names:
+            if not name or not name.strip():
+                continue
+            tag_id = self.get_or_create_tag(name)
+            if tag_id:
+                refs.append({
+                    "_type": "reference",
+                    "_ref": tag_id,
+                    "_key": sanity_client.generate_id()[:12],
+                })
+        return refs
+
+    # 旧互換
+    def get_tag_ids(self, tag_names: list) -> list:
+        """旧互換: get_tag_refs のエイリアス"""
+        return self.get_tag_refs(tag_names)
+
+    def upload_image_to_sanity(self, image_url: str, title: str = "",
+                               max_retries: int = 3) -> dict:
+        """URLから画像をダウンロードしてSanity Assetsにアップロード
+
+        Returns:
+            {"id": asset_id, "url": asset_url, "ref": image_ref_object}
+        """
+        if not image_url:
+            return {}
+
+        result = sanity_client.upload_image_from_url(image_url, max_retries)
+        if not result.get("_id"):
+            # フォールバック画像
+            fallback_urls = [
+                "https://images.unsplash.com/photo-1617575521317-d2974f3b56d2?w=800",
+                "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800",
+            ]
+            for fb_url in fallback_urls:
+                result = sanity_client.upload_image_from_url(fb_url, 1)
+                if result.get("_id"):
+                    logger.info(f"フォールバック画像を使用: {fb_url}")
+                    break
+
+        if result.get("_id"):
+            return {
+                "id": result["_id"],
+                "url": result.get("url", ""),
+                "ref": sanity_client.image_ref(result["_id"]),
+            }
+        return {}
+
+    # 旧互換
+    def upload_image_to_wordpress(self, image_url: str, title: str = "",
+                                  max_retries: int = 3) -> dict:
+        """旧互換: upload_image_to_sanity のエイリアス"""
+        result = self.upload_image_to_sanity(image_url, title, max_retries)
+        return {"id": result.get("id", ""), "url": result.get("url", ""),
+                "used_fallback": False}
+
+    def save_draft_to_sanity(self, draft_data: dict, image_url: str = None,
+                             additional_images: list = None, category: str = None,
+                             artist_tags: list = None) -> dict:
+        """記事下書きをSanityに保存
+
+        Args:
+            draft_data: {"title": str, "body": str (Markdown/HTML), "meta_description": str, ...}
+            image_url: アイキャッチ画像URL
+            additional_images: 追加画像URL配列
+            category: トレンドカテゴリ (artist/beauty/fashion/food/travel/event/drama/other)
+            artist_tags: アーティストタグ名配列
+
+        Returns:
+            {"id": draft_id, "preview_url": str, "edit_url": str, "slug": str}
+        """
+        doc_id = sanity_client.generate_id()
+        draft_id = f"drafts.{doc_id}"
+
+        title = draft_data.get("title", "")
+        body_text = draft_data.get("body", "")
+        meta_description = draft_data.get("meta_description", "")
+
+        # タイトルからslugを生成
+        slug = re.sub(r'[^\w\s-]', '', title.lower())
+        slug = re.sub(r'[\s]+', '-', slug).strip('-')[:200]
+        if not slug:
+            slug = doc_id[:20]
+
+        # Markdown → Portable Text 変換
+        body_pt = markdown_to_portable_text(body_text)
+
+        # アイキャッチ画像アップロード
+        main_image = None
+        if image_url:
+            img_result = self.upload_image_to_sanity(image_url, title)
+            if img_result.get("ref"):
+                main_image = img_result["ref"]
+                main_image["alt"] = title
+
+        # カテゴリ参照
+        category_ref = None
+        if category:
+            cat_slug = TREND_TO_CATEGORY.get(category, category)
+            cat_id = self._get_category_ref(cat_slug)
+            if cat_id:
+                category_ref = {"_type": "reference", "_ref": cat_id}
+
+        # タグ参照
+        tag_refs = []
+        if artist_tags:
+            tag_refs = self.get_tag_refs(artist_tags)
+
+        # Sanityドキュメント構築
+        doc = {
+            "_id": draft_id,
+            "_type": "article",
+            "title": title,
+            "slug": {"_type": "slug", "current": slug},
+            "body": body_pt,
+            "excerpt": meta_description,
+            "seo": {
+                "metaTitle": title,
+                "metaDescription": meta_description,
+            },
+            "artistTags": artist_tags or [],
+            "highlights": _sanitize_highlights(draft_data.get("highlights", [])),
+            "qualityScore": draft_data.get("quality_score"),
+            "xPost1": draft_data.get("x_post_1", ""),
+            "xPost2": draft_data.get("x_post_2", ""),
+            "newsPost": draft_data.get("news_post", ""),
+            "lunaPostA": draft_data.get("luna_post_a", ""),
+            "lunaPostB": draft_data.get("luna_post_b", ""),
+            "sourceUrl": draft_data.get("source_url", ""),
+            "researchReport": draft_data.get("research_report", ""),
         }
 
+        if main_image:
+            doc["mainImage"] = main_image
+        if category_ref:
+            doc["category"] = category_ref
+        if tag_refs:
+            doc["tags"] = tag_refs
 
-    def get_or_create_tag(self, tag_name: str) -> int:
-        """
-        WordPressでタグを取得または作成してIDを返す
+        # None値を除去
+        doc = {k: v for k, v in doc.items() if v is not None}
+
+        # Sanityに保存
+        sanity_client.create_or_replace(doc)
+        logger.info(f"Sanity下書き保存完了: {draft_id} - {title}")
+
+        # URL生成
+        edit_token = self._generate_edit_token(doc_id)
+        edit_url = f"{self.next_app_url}/edit/{doc_id}?token={edit_token}"
+        preview_url = f"{self.next_app_url}/api/preview?slug={slug}&secret={self.preview_secret}"
+
+        return {
+            "id": doc_id,
+            "draft_id": draft_id,
+            "preview_url": preview_url,
+            "edit_url": edit_url,
+            "slug": slug,
+        }
+
+    # 旧互換
+    def save_draft_to_wordpress(self, draft_data: dict, image_url: str = None,
+                                additional_images: list = None, category: str = None,
+                                artist_tags: list = None) -> dict:
+        """旧互換: save_draft_to_sanity のエイリアス"""
+        return self.save_draft_to_sanity(
+            draft_data, image_url, additional_images, category, artist_tags
+        )
+
+    def publish_to_sanity(self, draft_data: dict, image_url: str = None,
+                          category: str = None, artist_tags: list = None,
+                          wp_post_id: int = None, draft_id: str = None) -> dict:
+        """記事をSanityで公開
+
+        drafts.{id} → {id} にMutateして公開状態にする。
 
         Args:
-            tag_name: タグ名
+            draft_data: CMS content dict
+            image_url: アイキャッチ画像URL
+            category: トレンドカテゴリ
+            artist_tags: アーティストタグ
+            wp_post_id: 旧互換パラメータ（使用しない）
+            draft_id: SanityドラフトID（drafts.xxx or xxx）
 
         Returns:
-            タグID（失敗時は None）
+            {"id": published_id, "url": public_url, "slug": slug}
         """
+        import datetime
+
+        if draft_id:
+            # 既存ドラフトを公開
+            plain_id = draft_id.replace("drafts.", "")
+            sanity_draft_id = f"drafts.{plain_id}"
+
+            # ドラフトを取得
+            draft = sanity_client.query_one(
+                '*[_id == $id]{...}',
+                {"id": sanity_draft_id}
+            )
+
+            if draft:
+                # drafts.xxx → xxx にMutate（公開）
+                _id = draft.pop("_id", None)
+                _rev = draft.pop("_rev", None)
+                _type = draft.get("_type", "article")
+                _updated = draft.pop("_updatedAt", None)
+                _created = draft.pop("_createdAt", None)
+
+                if not draft.get("publishedAt"):
+                    draft["publishedAt"] = datetime.datetime.utcnow().isoformat() + "Z"
+
+                mutations = [
+                    {"createOrReplace": {**draft, "_id": plain_id}},
+                    {"delete": {"id": sanity_draft_id}},
+                ]
+                sanity_client.transaction(mutations)
+
+                slug = draft.get("slug", {}).get("current", plain_id)
+                url = f"{self.next_app_url}/articles/{slug}"
+
+                logger.info(f"Sanity公開完了: {plain_id} - {draft.get('title', '')}")
+                return {"id": plain_id, "url": url, "slug": slug}
+
+        # ドラフトが見つからない場合: 新規作成して即公開
+        result = self.save_draft_to_sanity(
+            draft_data, image_url, None, category, artist_tags
+        )
+        doc_id = result["id"]
+        draft_id_full = f"drafts.{doc_id}"
+
+        # ドラフトを取得して公開
+        draft = sanity_client.query_one(
+            '*[_id == $id]{...}',
+            {"id": draft_id_full}
+        )
+
+        if draft:
+            _id = draft.pop("_id", None)
+            _rev = draft.pop("_rev", None)
+            _updated = draft.pop("_updatedAt", None)
+            _created = draft.pop("_createdAt", None)
+            draft["publishedAt"] = datetime.datetime.utcnow().isoformat() + "Z"
+
+            mutations = [
+                {"createOrReplace": {**draft, "_id": doc_id}},
+                {"delete": {"id": draft_id_full}},
+            ]
+            sanity_client.transaction(mutations)
+
+        slug = result.get("slug", doc_id)
+        url = f"{self.next_app_url}/articles/{slug}"
+
+        logger.info(f"Sanity新規公開完了: {doc_id}")
+        return {"id": doc_id, "url": url, "slug": slug}
+
+    # 旧互換
+    def publish_to_wordpress(self, draft_data: dict, image_url: str = None,
+                             category: str = None, artist_tags: list = None,
+                             wp_post_id: int = None, draft_id: str = None) -> dict:
+        """旧互換: publish_to_sanity のエイリアス"""
+        return self.publish_to_sanity(
+            draft_data, image_url, category, artist_tags, wp_post_id,
+            draft_id=draft_id
+        )
+
+    def delete_sanity_draft(self, draft_id: str) -> bool:
+        """Sanityドラフトを削除"""
         try:
-            headers = self._get_wp_auth_header()
-
-            # 1. 既存タグを検索
-            search_response = requests.get(
-                f"{self.wp_url}/wp-json/wp/v2/tags",
-                headers=headers,
-                params={"search": tag_name, "per_page": 10},
-                timeout=30
-            )
-
-            if search_response.status_code == 200:
-                existing_tags = search_response.json()
-                for tag in existing_tags:
-                    if tag.get('name', '').lower() == tag_name.lower():
-                        log_event("WP_TAG_FOUND", f"Found existing tag: {tag_name}", tag_id=tag['id'])
-                        return tag['id']
-
-            # 2. タグが見つからない場合は作成
-            headers["Content-Type"] = "application/json"
-            create_response = requests.post(
-                f"{self.wp_url}/wp-json/wp/v2/tags",
-                headers=headers,
-                json={"name": tag_name},
-                timeout=30
-            )
-
-            if create_response.status_code == 201:
-                new_tag = create_response.json()
-                log_event("WP_TAG_CREATED", f"Created new tag: {tag_name}", tag_id=new_tag['id'])
-                return new_tag['id']
-            elif create_response.status_code == 400:
-                # タグが既に存在する場合（term_existsエラー）
-                error_data = create_response.json()
-                if 'data' in error_data and 'term_id' in error_data.get('data', {}):
-                    return error_data['data']['term_id']
-
-            log_error("WP_TAG_CREATE_FAILED", f"Failed to create tag: {tag_name}", status_code=create_response.status_code)
-            return None
-
+            sanity_draft_id = draft_id if draft_id.startswith("drafts.") else f"drafts.{draft_id}"
+            sanity_client.delete(sanity_draft_id)
+            logger.info(f"Sanityドラフト削除: {sanity_draft_id}")
+            return True
         except Exception as e:
-            log_error("WP_TAG_ERROR", f"Tag error for: {tag_name}", error=e)
-            return None
+            logger.error(f"Sanityドラフト削除失敗: {e}")
+            return False
 
-    def get_tag_ids(self, tag_names: list) -> list:
-        """
-        複数のタグ名からタグIDリストを取得
+    # 旧互換
+    def delete_wordpress_draft(self, wp_post_id: int) -> bool:
+        """旧互換: Firestoreのdraft_idでSanityドラフトを削除"""
+        # 旧呼び出しではwp_post_idが渡されるが、
+        # Sanityでは直接使えないのでログだけ出す
+        logger.warning(f"delete_wordpress_draft called with wp_post_id={wp_post_id}. "
+                      f"Sanity移行後はdraft_idを使用してください。")
+        return True
 
-        Args:
-            tag_names: タグ名のリスト
+    def upload_bytes_to_gcs(self, image_data: bytes, content_type: str = "image/jpeg") -> str:
+        """画像バイトをGCSにアップロード（LINE画像アップロード用、変更なし）"""
+        try:
+            from google.cloud import storage as gcs_storage
+            client = gcs_storage.Client()
+            bucket = client.bucket(self.gcs_bucket)
+            import uuid as _uuid
+            blob_name = f"uploads/{_uuid.uuid4().hex}.jpg"
+            blob = bucket.blob(blob_name)
+            blob.upload_from_string(image_data, content_type=content_type)
+            blob.make_public()
+            return blob.public_url
+        except Exception as e:
+            logger.error(f"GCSアップロード失敗: {e}")
+            return ""
 
-        Returns:
-            タグIDのリスト
-        """
-        tag_ids = []
-        for name in tag_names:
-            name = name.strip()
-            if name:
-                tag_id = self.get_or_create_tag(name)
-                if tag_id:
-                    tag_ids.append(tag_id)
-        return tag_ids
+    # ================================================================
+    # Firestore メソッド群
+    # ================================================================
 
     def save_draft(self, article_data, draft_id=None):
         """Saves the generated article drafted by Gemini to Firestore."""
@@ -183,31 +479,21 @@ class StorageManager:
         """Creates a blank draft in Firestore for manual article creation."""
         try:
             doc_ref = self.db.collection(self.collection_name).document()
-            
-            # Initial blank structure
             article_data = {
                 'created_at': firestore.SERVER_TIMESTAMP,
                 'status': 'pending',
                 'user_id': user_id,
                 'cms_content': {
-                    'title': '',
-                    'body': '',
-                    'meta_description': '',
-                    'x_post_1': '',
-                    'x_post_2': ''
+                    'title': '', 'body': '', 'meta_description': '',
+                    'x_post_1': '', 'x_post_2': ''
                 },
                 'sns_content': {
-                    'news_post': '',
-                    'luna_post_a': '',
-                    'luna_post_b': ''
+                    'news_post': '', 'luna_post_a': '', 'luna_post_b': ''
                 },
                 'trend_source': {
-                    'category': 'trend',
-                    'image_url': '',
-                    'artist_tags': []
+                    'category': 'trend', 'image_url': '', 'artist_tags': []
                 }
             }
-            
             doc_ref.set(article_data)
             return doc_ref.id
         except Exception as e:
@@ -233,548 +519,35 @@ class StorageManager:
         """Get and clear an edit session for a user from Firestore."""
         try:
             doc_ref = self.db.collection(self.sessions_collection).document(user_id)
-            
-            # Using transaction to read and delete atomically
+
             @firestore.transactional
             def read_and_delete_session(transaction, ref):
                 snapshot = ref.get(transaction=transaction)
                 if snapshot.exists:
                     data = snapshot.to_dict()
-                    # Delete the session after reading
                     transaction.delete(ref)
                     return data
                 return None
 
             transaction = self.db.transaction()
             session = read_and_delete_session(transaction, doc_ref)
-            
+
             if session:
-                # Check expiration (5 minutes)
                 from datetime import datetime, timezone, timedelta
                 session_time = session.get('timestamp')
                 if session_time:
-                    # session_time is a DatetimeWithNanoseconds object
                     now = datetime.now(timezone.utc)
                     if now - session_time > timedelta(minutes=5):
                         log_event("FIRESTORE_SESSION_EXPIRED", "Edit session expired for user")
                         return None
                 return session
             return None
-
         except Exception as e:
             log_error("FIRESTORE_SESSION_GET_ERROR", "Failed to get edit session", error=e)
             return None
 
-    def upload_image_to_gcs(self, image_url, filename_prefix="img", max_retries: int = 3):
-        """Downloads image from URL and uploads to GCS with retry logic."""
-        import time
-
-        for attempt in range(max_retries):
-            try:
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Accept": "image/*,*/*;q=0.8"
-                }
-                response = requests.get(image_url, stream=True, timeout=30, headers=headers)
-                if response.status_code != 200:
-                    log_error("GCS_DOWNLOAD_FAILED", f"Failed to download image: HTTP {response.status_code}")
-                    if attempt < max_retries - 1:
-                        time.sleep(2 ** attempt)
-                        continue
-                    return None
-
-                ext = "jpg"
-                if "png" in image_url: ext = "png"
-
-                filename = f"{filename_prefix}_{int(datetime.now().timestamp())}.{ext}"
-                blob = self.bucket.blob(filename)
-
-                blob.upload_from_string(response.content, content_type=response.headers.get('Content-Type'))
-                return blob.public_url
-            except Exception as e:
-                log_error("GCS_UPLOAD_ERROR", f"GCS upload failed (attempt {attempt + 1}/{max_retries})", error=e)
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                    continue
-                return None
-        return None
-
-    def upload_bytes_to_gcs(self, image_data: bytes, content_type: str = "image/jpeg") -> str:
-        """Uploads raw image bytes to GCS."""
-        try:
-            ext = "jpg"
-            if "png" in content_type: ext = "png"
-
-            filename = f"line_upload_{int(datetime.now().timestamp())}.{ext}"
-            blob = self.bucket.blob(filename)
-
-            blob.upload_from_string(image_data, content_type=content_type)
-            return blob.public_url
-        except Exception as e:
-            log_error("GCS_BYTE_UPLOAD_ERROR", "Failed to upload bytes to GCS", error=e)
-            return None
-
-    def upload_image_to_wordpress(self, image_url: str, title: str = "", max_retries: int = 3) -> dict:
-        """
-        画像をWordPress Media Libraryにアップロード（リトライ付き）
-
-        Args:
-            image_url: 画像URL
-            title: ALTテキスト用タイトル
-            max_retries: 最大リトライ回数
-
-        Returns:
-            {"id": media_id, "url": media_url} または None
-        """
-        import time
-
-        # Fallback images for when original fails
-        fallback_images = [
-            "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800",  # Concert
-            "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800",  # Seoul
-            "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800",  # Cosmetics
-        ]
-
-        urls_to_try = [image_url] + fallback_images
-        last_error = None
-
-        for url_idx, current_url in enumerate(urls_to_try):
-            if url_idx > 0:
-                log_event("WP_UPLOAD_FALLBACK", f"Trying fallback image {url_idx}")
-
-            for attempt in range(max_retries):
-                try:
-                    # 1. 画像をダウンロード（User-Agent付き）
-                    headers = {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                        "Accept": "image/*,*/*;q=0.8",
-                        "Referer": "https://www.google.com/"
-                    }
-                    response = requests.get(current_url, timeout=30, headers=headers, allow_redirects=True)
-                    response.raise_for_status()
-
-                    # Check if we got actual image data
-                    content_type = response.headers.get("Content-Type", "")
-                    if "text/html" in content_type:
-                        log_event("WP_UPLOAD_SKIP", "Got HTML instead of image, skipping")
-                        break  # Try next URL
-
-                    image_data = response.content
-                    if len(image_data) < 1000:  # Too small to be a valid image
-                        log_event("WP_UPLOAD_SKIP", f"Image data too small ({len(image_data)} bytes), skipping")
-                        break  # Try next URL
-
-                    # Content-Typeから拡張子を推測
-                    ext_map = {
-                        "image/jpeg": ".jpg",
-                        "image/png": ".png",
-                        "image/gif": ".gif",
-                        "image/webp": ".webp",
-                    }
-                    ext = ext_map.get(content_type.split(";")[0], ".jpg")
-
-                    # ファイル名を生成
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"ktrend_{timestamp}{ext}"
-
-                    # 2. WordPress Media APIへアップロード
-                    wp_headers = self._get_wp_auth_header()
-                    wp_headers["Content-Type"] = content_type.split(";")[0] or "image/jpeg"
-                    wp_headers["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-                    wp_response = requests.post(
-                        f"{self.wp_url}/wp-json/wp/v2/media",
-                        headers=wp_headers,
-                        data=image_data,
-                        timeout=60,
-                    )
-                    wp_response.raise_for_status()
-
-                    media_data = wp_response.json()
-
-                    # ALTテキストを設定
-                    if title:
-                        self._update_media_alt(media_data["id"], title)
-
-                    log_event("WP_UPLOAD_SUCCESS", f"Image uploaded successfully (attempt {attempt + 1}, URL index {url_idx})")
-                    return {
-                        "id": media_data["id"],
-                        "url": media_data.get("source_url", media_data.get("guid", {}).get("rendered", "")),
-                        "used_fallback": url_idx > 0
-                    }
-
-                except requests.exceptions.HTTPError as e:
-                    last_error = e
-                    status_code = e.response.status_code if e.response else 0
-                    log_error("WP_UPLOAD_HTTP_ERROR", f"HTTP Error {status_code} (attempt {attempt + 1}/{max_retries})", error=e)
-
-                    # 404/403 errors - don't retry, try next URL
-                    if status_code in [404, 403, 401]:
-                        break
-
-                    # Other errors - retry with backoff
-                    if attempt < max_retries - 1:
-                        wait_time = 2 ** attempt
-                        log_event("WP_UPLOAD_RETRY", f"Retrying in {wait_time}s")
-                        time.sleep(wait_time)
-
-                except requests.exceptions.Timeout as e:
-                    last_error = e
-                    log_error("WP_UPLOAD_TIMEOUT", f"Timeout (attempt {attempt + 1}/{max_retries})", error=e)
-                    if attempt < max_retries - 1:
-                        time.sleep(2)
-
-                except Exception as e:
-                    last_error = e
-                    log_error("WP_UPLOAD_ERROR", f"Upload error (attempt {attempt + 1}/{max_retries})", error=e)
-                    if attempt < max_retries - 1:
-                        time.sleep(1)
-
-        log_error("WP_UPLOAD_ALL_FAILED", "All image upload attempts failed", error=last_error)
-        return None
-
-    def _update_media_alt(self, media_id: int, alt_text: str) -> bool:
-        """メディアのALTテキストを更新"""
-        try:
-            headers = self._get_wp_auth_header()
-            headers["Content-Type"] = "application/json"
-            response = requests.post(
-                f"{self.wp_url}/wp-json/wp/v2/media/{media_id}",
-                headers=headers,
-                json={"alt_text": alt_text},
-                timeout=30,
-            )
-            response.raise_for_status()
-            return True
-        except Exception:
-            return False
-
-    def _enable_public_preview(self, post_id: int) -> str:
-        """
-        Public Post Previewプラグインを有効化してプレビューURLを取得
-
-        Args:
-            post_id: WordPress投稿ID
-
-        Returns:
-            プレビューURL または None
-        """
-        try:
-            headers = self._get_wp_auth_header()
-            headers["Content-Type"] = "application/json"
-
-            # カスタムREST APIエンドポイントを使用してプレビューを有効化
-            response = requests.post(
-                f"{self.wp_url}/wp-json/public-preview/v1/enable/{post_id}",
-                headers=headers,
-                timeout=30,
-            )
-            response.raise_for_status()
-
-            result = response.json()
-            preview_url = result.get("preview_url")
-
-            if preview_url:
-                log_event("WP_PREVIEW_ENABLED", "Public Preview enabled", preview_url=preview_url)
-                return preview_url
-
-            return None
-
-        except Exception as e:
-            log_error("WP_PREVIEW_ERROR", "Failed to enable public preview", error=e)
-            return None
-
-    def publish_to_wordpress(self, draft_data: dict, image_url: str = None, category: str = None, artist_tags: list = None, wp_post_id: int = None) -> dict:
-        """
-        記事をWordPressに公開（REST API使用）
-
-        Args:
-            draft_data: CMS記事データ (title, body, meta_description等)
-            image_url: アイキャッチ画像URL（オプション）
-            category: カテゴリ（trend/artist/beauty等）
-            artist_tags: アーティストタグのリスト（オプション）
-            wp_post_id: 既存のWordPress下書き投稿ID（あればステータスを更新）
-
-        Returns:
-            {"id": post_id, "url": post_url} または None
-        """
-        try:
-            # 1. 画像をWordPressにアップロード
-            featured_media_id = None
-            if image_url and not image_url.startswith("https://via.placeholder"):
-                media_result = self.upload_image_to_wordpress(
-                    image_url,
-                    draft_data.get('title', '')
-                )
-                if media_result:
-                    featured_media_id = media_result["id"]
-
-            # 2. カテゴリを判定
-            category_id = get_wp_category_id(category) if category else CATEGORY_IDS.get("trend", 3)
-            log_event("WP_PUBLISH_CATEGORY", f"Publish Category: {category} -> WordPress ID: {category_id}")
-
-            # 3. タグIDを取得
-            tag_ids = []
-            if artist_tags:
-                tag_ids = self.get_tag_ids(artist_tags)
-                log_event("WP_PUBLISH_TAGS", f"Tags resolved: {artist_tags} -> IDs: {tag_ids}")
-
-            # 4. 投稿データを構築
-            meta_description = draft_data.get('meta_description', '')
-            title = draft_data.get('title', '')
-
-            post_data = {
-                "title": title,
-                "content": draft_data.get('body', ''),
-                "status": "publish",
-                "categories": [category_id],
-                "excerpt": meta_description,
-            }
-
-            # タグを追加
-            if tag_ids:
-                post_data["tags"] = tag_ids
-
-            # アイキャッチ画像
-            if featured_media_id:
-                post_data["featured_media"] = featured_media_id
-
-            # 5. WordPress REST APIで投稿を作成または更新
-            headers = self._get_wp_auth_header()
-            headers["Content-Type"] = "application/json"
-
-            if wp_post_id and wp_post_id != 999999:
-                # 既存の下書きを公開に更新
-                log_event("WP_PUBLISH_UPDATE", f"Updating existing WordPress post {wp_post_id} to publish")
-                response = requests.post(
-                    f"{self.wp_url}/wp-json/wp/v2/posts/{wp_post_id}",
-                    headers=headers,
-                    json=post_data,
-                    timeout=60,
-                )
-            else:
-                # 新規投稿として作成
-                log_event("WP_PUBLISH_CREATE", "Creating new WordPress post as publish")
-                response = requests.post(
-                    f"{self.wp_url}/wp-json/wp/v2/posts",
-                    headers=headers,
-                    json=post_data,
-                    timeout=60,
-                )
-
-            response.raise_for_status()
-            post_result = response.json()
-            post_id = post_result["id"]
-            post_url = post_result.get("link", f"{self.wp_url}/?p={post_id}")
-
-            log_event("WP_PUBLISH_SUCCESS", "WordPress published successfully", post_id=post_id, post_url=post_url)
-            return {
-                "id": post_id,
-                "url": post_url,
-                "slug": post_result.get("slug", ""),
-            }
-
-        except requests.exceptions.RequestException as e:
-            log_error("WP_PUBLISH_ERROR", "WordPress publish request failed", error=e)
-            if hasattr(e, 'response') and e.response is not None:
-                log_error("WP_PUBLISH_RESPONSE", f"Response status: {e.response.status_code}")
-            return None
-        except Exception as e:
-            log_error("WP_PUBLISH_UNEXPECTED_ERROR", "Unexpected WordPress publish error", error=e)
-            return None
-
-    def save_draft_to_wordpress(self, draft_data: dict, image_url: str = None, additional_images: list = None, category: str = None, artist_tags: list = None) -> dict:
-        """
-        記事をWordPressに下書きとして保存
-
-        ⚠️ Application Password認証が無効のため、Firestoreのみに保存
-        公開時に管理画面ログイン経由でWordPressに投稿作成
-
-        Args:
-            draft_data: CMS記事データ (title, body, meta_description等)
-            image_url: アイキャッチ画像URL（オプション）
-            additional_images: 追加画像URLのリスト（オプション）
-            category: トレンドカテゴリ（artist/beauty/fashion等）
-            artist_tags: アーティストタグのリスト（オプション）
-
-        Returns:
-            {"id": post_id, "preview_url": preview_url, "edit_url": edit_url} または None
-        """
-        try:
-            # Helper function to check if image URL is valid
-            def is_valid_image_url(url):
-                return (
-                    url and
-                    not url.startswith("https://via.placeholder") and
-                    "example.com" not in url and
-                    "placeholder" not in url.lower()
-                )
-
-            # 1. アイキャッチ画像をWordPressにアップロード
-            featured_media_id = None
-
-            if is_valid_image_url(image_url):
-                media_result = self.upload_image_to_wordpress(
-                    image_url,
-                    draft_data.get('title', '')
-                )
-                if media_result:
-                    featured_media_id = media_result["id"]
-                    log_event("WP_DRAFT_IMAGE_UPLOADED", f"Featured image uploaded: Media ID {featured_media_id}")
-                else:
-                    log_error("WP_DRAFT_IMAGE_FAILED", "Featured image upload failed")
-            else:
-                log_event("WP_DRAFT_IMAGE_SKIP", "Invalid featured image URL, skipping")
-
-            # 2. 追加画像をアップロードしてプレースホルダーを置換
-            body_content = draft_data.get('body', '')
-
-            if additional_images:
-                for idx, add_img_url in enumerate(additional_images[:3]):  # Max 3 additional images
-                    if is_valid_image_url(add_img_url):
-                        add_media_result = self.upload_image_to_wordpress(
-                            add_img_url,
-                            f"{draft_data.get('title', '')} - 画像{idx + 1}"
-                        )
-                        if add_media_result:
-                            # Create WordPress image block HTML
-                            img_html = f'''
-<figure class="wp-block-image size-large">
-<img src="{add_media_result['url']}" alt="{draft_data.get('title', '')}"/>
-</figure>
-'''
-                            # Replace placeholder with actual image
-                            placeholder = f"[IMAGE_{idx + 1}]"
-                            body_content = body_content.replace(placeholder, img_html)
-                            log_event("WP_DRAFT_ADDIMG_UPLOADED", f"Additional image {idx + 1} uploaded")
-                        else:
-                            # Remove placeholder if upload failed
-                            body_content = body_content.replace(f"[IMAGE_{idx + 1}]", "")
-                            log_error("WP_DRAFT_ADDIMG_FAILED", f"Additional image {idx + 1} upload failed")
-                    else:
-                        # Remove placeholder for invalid URLs
-                        body_content = body_content.replace(f"[IMAGE_{idx + 1}]", "")
-
-            # Remove any remaining placeholders
-            import re
-            body_content = re.sub(r'\[IMAGE_\d+\]', '', body_content)
-
-            # 3. カテゴリを判定（トレンドカテゴリから自動マッピング）
-            category_id = get_wp_category_id(category) if category else CATEGORY_IDS.get("trend", 3)
-            log_event("WP_DRAFT_CATEGORY", f"Category: {category} -> WordPress ID: {category_id}")
-
-            # 3.5 タグIDを取得
-            tag_ids = []
-            if artist_tags:
-                tag_ids = self.get_tag_ids(artist_tags)
-                log_event("WP_DRAFT_TAGS", f"Tags resolved: {artist_tags} -> IDs: {tag_ids}")
-
-            # 4. 投稿データを構築（下書きとして保存）
-            meta_description = draft_data.get('meta_description', '')
-            title = draft_data.get('title', '')
-
-            post_data = {
-                "title": title,
-                "content": body_content,
-                "status": "draft",
-                "categories": [category_id],
-                "excerpt": meta_description,
-                # SEO メタデータ（Yoast SEO対応）
-                "meta": {
-                    "_yoast_wpseo_metadesc": meta_description,
-                    "_yoast_wpseo_title": f"{title} | K-Trend Times",
-                    "_yoast_wpseo_focuskw": category if category else "韓国トレンド",
-                }
-            }
-
-            # タグを追加
-            if tag_ids:
-                post_data["tags"] = tag_ids
-
-            if featured_media_id:
-                post_data["featured_media"] = featured_media_id
-                # OGP画像設定
-                post_data["meta"]["_yoast_wpseo_opengraph-image-id"] = str(featured_media_id)
-
-            # 5. WordPress Posts APIへPOST
-            headers = self._get_wp_auth_header()
-            headers["Content-Type"] = "application/json"
-
-            response = requests.post(
-                f"{self.wp_url}/wp-json/wp/v2/posts",
-                headers=headers,
-                json=post_data,
-                timeout=60,
-            )
-            response.raise_for_status()
-
-            post_result = response.json()
-            post_id = post_result["id"]
-
-            # Public Post Previewを有効化してプレビューURLを取得
-            preview_url = self._enable_public_preview(post_id)
-            if not preview_url:
-                preview_url = f"{self.wp_url}/wp-admin/post.php?post={post_id}&action=edit"
-
-            return {
-                "id": post_id,
-                "preview_url": preview_url,
-                "edit_url": f"{self.wp_url}/wp-admin/post.php?post={post_id}&action=edit",
-                "slug": post_result.get("slug", ""),
-            }
-
-        except requests.exceptions.RequestException as e:
-            log_error("WP_DRAFT_SAVE_ERROR", "WordPress draft save request failed", error=e)
-            if hasattr(e, 'response') and e.response is not None:
-                log_error("WP_DRAFT_SAVE_RESPONSE", f"Response status: {e.response.status_code}")
-            return None
-        except Exception as e:
-            log_error("WP_DRAFT_UNEXPECTED_ERROR", "Unexpected WordPress draft error", error=e)
-            return None
-
-
-    def delete_wordpress_draft(self, wp_post_id: int) -> bool:
-        """
-        WordPressの下書きを削除
-
-        Args:
-            wp_post_id: WordPress投稿ID
-
-        Returns:
-            成功したかどうか
-        """
-        try:
-            headers = self._get_wp_auth_header()
-
-            response = requests.delete(
-                f"{self.wp_url}/wp-json/wp/v2/posts/{wp_post_id}?force=true",
-                headers=headers,
-                timeout=60,
-            )
-            response.raise_for_status()
-            return True
-
-        except Exception as e:
-            log_error("WP_DELETE_ERROR", "Failed to delete WordPress draft", error=e)
-            return False
-
     def log_execution(self, execution_data: dict) -> str:
-        """
-        実行ログをFirestoreに保存
-
-        Args:
-            execution_data: {
-                'timestamp': datetime,
-                'trends_fetched': int,
-                'drafts_created': int,
-                'images_uploaded': int,
-                'errors': list,
-                'duration_seconds': float
-            }
-
-        Returns:
-            ログID
-        """
+        """Save execution log to Firestore."""
         try:
             execution_data['created_at'] = firestore.SERVER_TIMESTAMP
             doc_ref = self.db.collection(self.logs_collection).document()
@@ -786,42 +559,22 @@ class StorageManager:
             return None
 
     def update_daily_stats(self, date_str: str, stats: dict) -> bool:
-        """
-        日次統計を更新
-
-        Args:
-            date_str: 日付 (YYYY-MM-DD)
-            stats: {
-                'total_trends': int,
-                'total_drafts': int,
-                'official_images': int,
-                'fallback_images': int,
-                'categories': dict
-            }
-
-        Returns:
-            成功したかどうか
-        """
+        """Update daily statistics in Firestore."""
         try:
             doc_ref = self.db.collection(self.stats_collection).document(date_str)
             doc = doc_ref.get()
-
             if doc.exists:
-                # 既存の統計を更新
                 existing = doc.to_dict()
                 stats['total_trends'] = existing.get('total_trends', 0) + stats.get('total_trends', 0)
                 stats['total_drafts'] = existing.get('total_drafts', 0) + stats.get('total_drafts', 0)
                 stats['official_images'] = existing.get('official_images', 0) + stats.get('official_images', 0)
                 stats['fallback_images'] = existing.get('fallback_images', 0) + stats.get('fallback_images', 0)
-
-                # Merge category counts
                 existing_categories = existing.get('categories', {})
                 new_categories = stats.get('categories', {})
                 merged_categories = existing_categories.copy()
                 for cat, count in new_categories.items():
                     merged_categories[cat] = merged_categories.get(cat, 0) + count
                 stats['categories'] = merged_categories
-
             stats['updated_at'] = firestore.SERVER_TIMESTAMP
             doc_ref.set(stats, merge=True)
             log_event("FIRESTORE_STATS_UPDATED", f"Daily stats updated for {date_str}")
@@ -831,20 +584,10 @@ class StorageManager:
             return False
 
     def increment_approval_stat(self, approved: bool = True) -> bool:
-        """
-        承認/却下の統計をインクリメント
-
-        Args:
-            approved: True=承認, False=却下
-
-        Returns:
-            成功したかどうか
-        """
+        """Increment approval or rejection count in daily stats."""
         try:
-            from datetime import datetime
             date_str = datetime.now().strftime('%Y-%m-%d')
             doc_ref = self.db.collection(self.stats_collection).document(date_str)
-
             field = 'approved_count' if approved else 'rejected_count'
             doc_ref.set({field: firestore.Increment(1)}, merge=True)
             log_event("FIRESTORE_APPROVAL_STAT", f"{'Approved' if approved else 'Rejected'} count incremented for {date_str}")
@@ -854,33 +597,17 @@ class StorageManager:
             return False
 
     def get_stats_summary(self, days: int = 7) -> dict:
-        """
-        直近N日間の統計サマリーを取得
-
-        Args:
-            days: 取得する日数
-
-        Returns:
-            統計サマリー
-        """
+        """Get aggregated statistics summary for the given number of days."""
         try:
-            from datetime import datetime, timedelta
-
+            from datetime import timedelta
             summary = {
-                'total_trends': 0,
-                'total_drafts': 0,
-                'official_images': 0,
-                'fallback_images': 0,
-                'days_collected': 0,
-                'categories': {},
-                'approved_count': 0,
-                'rejected_count': 0
+                'total_trends': 0, 'total_drafts': 0, 'official_images': 0,
+                'fallback_images': 0, 'days_collected': 0, 'categories': {},
+                'approved_count': 0, 'rejected_count': 0
             }
-
             for i in range(days):
                 date_str = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
                 doc = self.db.collection(self.stats_collection).document(date_str).get()
-
                 if doc.exists:
                     data = doc.to_dict()
                     summary['total_trends'] += data.get('total_trends', 0)
@@ -890,48 +617,26 @@ class StorageManager:
                     summary['approved_count'] += data.get('approved_count', 0)
                     summary['rejected_count'] += data.get('rejected_count', 0)
                     summary['days_collected'] += 1
-
-                    # Aggregate categories
                     for cat, count in data.get('categories', {}).items():
                         summary['categories'][cat] = summary['categories'].get(cat, 0) + count
-
-            # 画像成功率を計算
             total_images = summary['official_images'] + summary['fallback_images']
             summary['official_image_rate'] = (summary['official_images'] / total_images * 100) if total_images > 0 else 0
-
-            # 承認率を計算
             total_decisions = summary['approved_count'] + summary['rejected_count']
             summary['approval_rate'] = (summary['approved_count'] / total_decisions * 100) if total_decisions > 0 else 0
-
-            # Get article performance data
             article_stats = self.get_article_performance(days)
             summary.update(article_stats)
-
             return summary
         except Exception as e:
             log_error("FIRESTORE_STATS_SUMMARY_ERROR", "Failed to get stats summary", error=e)
             return {}
 
     def get_best_articles(self, days: int = 7, limit: int = 3) -> list:
-        """
-        Get the best performing articles from the past N days.
-
-        Args:
-            days: Number of days to look back
-            limit: Maximum number of articles to return
-
-        Returns:
-            List of best articles with title, score, url, category
-        """
+        """Get top-scoring approved articles."""
         try:
-            from datetime import datetime, timedelta
-
-            # Get approved articles sorted by quality score
             articles_ref = self.db.collection(self.collection_name) \
                 .where('status', '==', 'approved') \
                 .order_by('quality_score', direction='DESCENDING') \
-                .limit(limit * 2)  # Get more to filter
-
+                .limit(limit * 2)
             best_articles = []
             for doc in articles_ref.stream():
                 article = doc.to_dict()
@@ -939,77 +644,44 @@ class StorageManager:
                 score = article.get('quality_score', 0)
                 url = article.get('wordpress_url', '')
                 category = article.get('trend_source', {}).get('category', 'other')
-
-                if score >= 60:  # Only include articles with decent quality
+                if score >= 60:
                     best_articles.append({
                         'title': title[:35] + ('...' if len(title) > 35 else ''),
-                        'score': score,
-                        'url': url,
-                        'category': category
+                        'score': score, 'url': url, 'category': category
                     })
-
                 if len(best_articles) >= limit:
                     break
-
             return best_articles
-
         except Exception as e:
             log_error("FIRESTORE_BEST_ARTICLES_ERROR", "Failed to get best articles", error=e)
             return []
 
     def get_article_performance(self, days: int = 7) -> dict:
-        """
-        Get article performance statistics.
-
-        Args:
-            days: Number of days to look back
-
-        Returns:
-            Dictionary with performance stats
-        """
+        """Get article performance metrics."""
         try:
-            from datetime import datetime, timedelta
-
-            cutoff = datetime.now() - timedelta(days=days)
-
-            # Get recent approved articles
             articles_ref = self.db.collection(self.collection_name) \
                 .where('status', '==', 'approved') \
                 .limit(100)
-
-            articles = list(articles_ref.stream())
-
             total_published = 0
             total_quality_score = 0
             rewritten_count = 0
             scheduled_count = 0
             quality_scores = []
-
-            for doc in articles:
+            for doc in articles_ref.stream():
                 article = doc.to_dict()
                 total_published += 1
-
-                # Quality score
                 score = article.get('quality_score', 0)
                 if score > 0:
                     quality_scores.append(score)
                     total_quality_score += score
-
-                # Rewritten articles
                 if article.get('was_rewritten'):
                     rewritten_count += 1
-
-            # Also check scheduled articles
             scheduled_ref = self.db.collection(self.collection_name) \
                 .where('status', '==', 'scheduled') \
                 .limit(50)
-
             for doc in scheduled_ref.stream():
                 scheduled_count += 1
-
-            # Calculate averages
             avg_quality = total_quality_score / len(quality_scores) if quality_scores else 0
-
             return {
                 'total_published': total_published,
                 'avg_quality_score': round(avg_quality, 1),
@@ -1017,41 +689,20 @@ class StorageManager:
                 'scheduled_count': scheduled_count,
                 'rewrite_rate': round(rewritten_count / total_published * 100, 1) if total_published > 0 else 0
             }
-
         except Exception as e:
             log_error("FIRESTORE_PERFORMANCE_ERROR", "Failed to get article performance", error=e)
-            return {
-                'total_published': 0,
-                'avg_quality_score': 0,
-                'rewritten_count': 0,
-                'scheduled_count': 0,
-                'rewrite_rate': 0
-            }
+            return {'total_published': 0, 'avg_quality_score': 0, 'rewritten_count': 0, 'scheduled_count': 0, 'rewrite_rate': 0}
 
     def save_trend_title(self, title: str, trend_data: dict = None) -> bool:
-        """
-        Save a trend title to track for duplicate detection.
-
-        Args:
-            title: The trend title to save
-            trend_data: Optional additional trend data
-
-        Returns:
-            True if saved successfully
-        """
+        """Save a trend title to Firestore for duplicate detection."""
         try:
-            from datetime import datetime
-            import hashlib
-
-            # Create a hash of the title for the document ID
-            title_hash = hashlib.md5(title.encode()).hexdigest()[:12]
-
+            import hashlib as _hashlib
+            title_hash = _hashlib.md5(title.encode()).hexdigest()[:12]
             doc_data = {
                 'title': title,
                 'created_at': datetime.now().isoformat(),
                 'trend_data': trend_data or {}
             }
-
             self.db.collection('trend_titles').document(title_hash).set(doc_data)
             return True
         except Exception as e:
@@ -1059,97 +710,57 @@ class StorageManager:
             return False
 
     def is_duplicate_trend(self, title: str, hours: int = 24) -> bool:
-        """
-        Check if a similar trend title exists within the specified hours.
-
-        Args:
-            title: The trend title to check
-            hours: Number of hours to look back (default 24)
-
-        Returns:
-            True if a similar trend exists
-        """
+        """Check if a trend title is a duplicate within the given hours."""
         try:
-            from datetime import datetime, timedelta
-
-            # Calculate cutoff time
+            from datetime import timedelta
             cutoff = datetime.now() - timedelta(hours=hours)
             cutoff_str = cutoff.isoformat()
-
-            # Get recent trend titles
             docs = self.db.collection('trend_titles') \
                 .where('created_at', '>=', cutoff_str) \
                 .stream()
-
-            # Check for similarity
             for doc in docs:
                 data = doc.to_dict()
                 existing_title = data.get('title', '')
-
-                # Calculate similarity
                 similarity = self._calculate_title_similarity(title, existing_title)
-                if similarity >= 0.6:  # 60% similarity threshold
+                if similarity >= 0.6:
                     log_event("TREND_DUPLICATE_FOUND", f"Duplicate trend detected (similarity: {similarity:.0%})")
                     return True
-
             return False
         except Exception as e:
             log_error("TREND_DUPLICATE_CHECK_ERROR", "Failed to check duplicate trend", error=e)
             return False
 
     def _calculate_title_similarity(self, title1: str, title2: str) -> float:
-        """Calculate word overlap similarity between two titles."""
+        """Calculate Jaccard similarity between two titles."""
         if not title1 or not title2:
             return 0.0
-
-        # Normalize titles
         t1 = title1.lower().strip()
         t2 = title2.lower().strip()
-
         if t1 == t2:
             return 1.0
-
-        # Word overlap similarity
         words1 = set(t1.split())
         words2 = set(t2.split())
-
         if not words1 or not words2:
             return 0.0
-
         intersection = words1 & words2
         union = words1 | words2
-
         return len(intersection) / len(union) if union else 0.0
 
     def cleanup_old_trend_titles(self, days: int = 7) -> int:
-        """
-        Remove trend titles older than specified days.
-
-        Args:
-            days: Number of days to keep (default 7)
-
-        Returns:
-            Number of deleted documents
-        """
+        """Clean up trend titles older than the specified number of days."""
         try:
-            from datetime import datetime, timedelta
-
+            from datetime import timedelta
             cutoff = datetime.now() - timedelta(days=days)
             cutoff_str = cutoff.isoformat()
-
-            # Get old documents
             docs = self.db.collection('trend_titles') \
                 .where('created_at', '<', cutoff_str) \
                 .stream()
-
             deleted = 0
             for doc in docs:
                 doc.reference.delete()
                 deleted += 1
-
             if deleted > 0:
                 log_event("TREND_CLEANUP", f"Cleaned up {deleted} old trend titles")
-
             return deleted
         except Exception as e:
             log_error("TREND_CLEANUP_ERROR", "Failed to cleanup trend titles", error=e)

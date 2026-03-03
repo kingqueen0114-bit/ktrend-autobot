@@ -84,6 +84,26 @@ def quality_check(article_json: Dict, source_articles: List[Dict] = None,
                 "severity": "HIGH"
             })
 
+    # --- Check 3.5: highlights プレースホルダー検出 ---
+    highlights = article_json.get("highlights", [])
+    placeholder_keywords = [
+        "最新情報", "情報1", "情報2", "情報3", "要点1", "要点2", "要点3",
+        "ポイント1", "ポイント2", "ポイント3",
+        "記事の要点", "ハイライト", "詳細は記事をチェック",
+        "韓国で話題のトレンド情報", "最新ニュースをお届け",
+    ]
+    for h in highlights:
+        h_stripped = h.strip() if isinstance(h, str) else ""
+        is_placeholder = any(kw in h_stripped for kw in placeholder_keywords)
+        is_too_short = len(h_stripped) < 5
+        if is_placeholder or is_too_short:
+            issues.append({
+                "type": "PLACEHOLDER_HIGHLIGHT",
+                "detail": f"highlights にプレースホルダーまたは不十分な内容: '{h}'",
+                "severity": "HIGH"
+            })
+            break  # 1つ見つかれば十分
+
     # --- Check 4: ハッシュタグ数チェック ---
     for field_name in ["x_post_1", "x_post_2"]:
         post_text = article_json.get(field_name, "")

@@ -76,7 +76,8 @@ def process_ondemand_text(topic, line_bot_api, user_id):
                  'passed': quality['passed'],
                  'warnings': quality['warnings'],
                  'was_rewritten': rewritten
-             }
+             },
+             slug=wp_result.get("slug") if wp_result else None
         )
         log_event("ONDEMAND_TEXT_COMPLETE", "On-demand text process complete", draft_id=draft_id)
 
@@ -152,7 +153,8 @@ def process_ondemand_image(image_bytes, line_bot_api, user_id):
                  'passed': quality['passed'],
                  'warnings': quality['warnings'],
                  'was_rewritten': rewritten
-             }
+             },
+             slug=wp_result.get("slug") if wp_result else None
         )
         log_event("ONDEMAND_IMAGE_COMPLETE", "On-demand image process complete", draft_id=draft_id)
 
@@ -263,7 +265,8 @@ def process_category_generate(category, line_bot_api, reply_token, user_id):
                 'warnings': quality['warnings'],
                 'was_rewritten': rewritten
             },
-            additional_images=additional_images
+            additional_images=additional_images,
+            slug=wp_result.get("slug") if wp_result else None
         )
         log_event("CATEGORY_GENERATE_SUCCESS", f"Generated article for {category}", draft_id=draft_id)
 

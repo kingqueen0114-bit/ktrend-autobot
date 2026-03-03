@@ -1,8 +1,10 @@
 """
 Draft editor handler for K-Trend AutoBot.
-Renders HTML form for viewing and editing drafts, handles POST approval/publishing.
+Redirects to Next.js edit page, handles legacy POST approval/publishing.
 """
 import os
+import hmac
+import hashlib
 import functions_framework
 from datetime import datetime
 import json
@@ -12,7 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 from src.storage_manager import StorageManager
 from utils.logging_config import log_event, log_error
 
-# Jinja2 template engine initialization
+# Jinja2 template engine initialization (kept for result pages)
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates')
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 
@@ -162,11 +164,12 @@ def view_draft(request):
         draft['status'] = 'approved'
         storage.save_draft(draft, draft_id)
 
-        # 4. Publish to WordPress if CMS is approved
+        # 4. Publish to Sanity if CMS is approved
         if 'approve_cms' in form:
-            # Pass existing WP post ID if available (to update draft -> publish)
+            # Sanity移行: draft_idを使用して公開
+            sanity_draft_id = draft.get('sanity_draft_id') or draft_id
             wp_post_id = draft.get('wordpress_post_id') or draft.get('wordpress_id')
-            result = storage.publish_to_wordpress(cms_content, img_url, category=new_category, artist_tags=artist_tags, wp_post_id=wp_post_id)
+            result = storage.publish_to_wordpress(cms_content, img_url, category=new_category, artist_tags=artist_tags, wp_post_id=wp_post_id, draft_id=sanity_draft_id)
             if result:
                 draft['wordpress_url'] = result['url']
                 draft['wordpress_id'] = result['id']
@@ -178,7 +181,7 @@ def view_draft(request):
                     icon='🎉',
                     heading_color='#1DB446',
                     bg_color='#e8f5e9',
-                    message='記事がWordPressに公開されました。',
+                    message='記事が公開されました。',
                     sub_message=None,
                     url=result['url'],
                     links=[
@@ -192,7 +195,7 @@ def view_draft(request):
                     icon='❌',
                     heading_color='#f44336',
                     bg_color='#ffebee',
-                    message='WordPressへの公開に失敗しました。',
+                    message='記事の公開に失敗しました。',
                     sub_message='しばらく待ってから再度お試しください。',
                     url=None,
                     links=[{'href': 'javascript:history.back()', 'label': '← 戻る', 'style': 'outline', 'target': None}]
@@ -204,63 +207,23 @@ def view_draft(request):
                 heading_color='#1DB446',
                 bg_color='#e8f5e9',
                 message='修正内容は保存されました。',
-                sub_message='（CMSにチェックがなかったため、WordPressには公開されていません）',
+                sub_message='（CMSにチェックがなかったため、公開されていません）',
                 url=None,
                 links=[{'href': 'javascript:history.back()', 'label': '← 戻る', 'style': 'outline', 'target': None}]
             ), 200
 
-    # --- GET Request: Render Form ---
+    # --- GET Request: Redirect to Next.js edit page ---
+    next_app_url = os.environ.get("NEXT_APP_URL", "https://k-trendtimes.com")
+    edit_secret = os.environ.get("EDIT_SECRET", "")
 
-    # Extract content
-    sns_content = draft.get('sns_content', {})
-    cms_content = draft.get('cms_content', {})
-    trend_source = draft.get('trend_source', {})
-    category = trend_source.get('category', 'trend')
+    # Generate HMAC token for edit page authentication
+    edit_token = hmac.new(edit_secret.encode(), draft_id.encode(), hashlib.sha256).hexdigest() if edit_secret else ""
+    edit_url = f"{next_app_url}/edit/{draft_id}?token={edit_token}"
 
-    # Category display names
-    category_names = {
-        'artist': 'K-POP・アーティスト',
-        'beauty': 'ビューティー',
-        'fashion': 'ファッション',
-        'food': 'グルメ',
-        'travel': '韓国旅行',
-        'event': 'イベント',
-        'drama': 'ドラマ',
-        'trend': 'トレンド',
-        'other': 'その他'
-    }
-    category_display = category_names.get(category, 'トレンド')
+    log_event("VIEW_DRAFT_REDIRECT", f"Redirecting to Next.js edit page", draft_id=draft_id)
 
-    # Escape content for HTML
-    import html as html_module
-    title_escaped = html_module.escape((cms_content.get('title') or '') if isinstance(cms_content.get('title'), str) else '')
-    body_escaped = html_module.escape((cms_content.get('body') or '') if isinstance(cms_content.get('body'), str) else '')
-    meta_escaped = html_module.escape((cms_content.get('meta_description') or '') if isinstance(cms_content.get('meta_description'), str) else '')
-
-    # Prepare artist tags string
-    artist_tags_list = trend_source.get('artist_tags') or []
-    artist_tags_str = ', '.join(artist_tags_list) if isinstance(artist_tags_list, list) else ''
-
-    # Render template
-    html = render_template('draft_edit.html',
-        image_url=trend_source.get('image_url', ''),
-        image_source=trend_source.get('image_source', ''),
-        category=category,
-        artist_tags_str=artist_tags_str,
-        title_escaped=title_escaped,
-        body_escaped=body_escaped,
-        meta_escaped=meta_escaped,
-        x_post_1=cms_content.get('x_post_1', ''),
-        x_post_2=cms_content.get('x_post_2', ''),
-        news_post=sns_content.get('news_post', ''),
-        luna_post_a=sns_content.get('luna_post_a', ''),
-        luna_post_b=sns_content.get('luna_post_b', ''),
-        category_display=category_display,
-        current_date=datetime.now().strftime('%Y年%m月%d日'),
-    )
-
-
-    return html, 200
+    # 302 redirect to Next.js edit page
+    return "", 302, {"Location": edit_url}
 
 def view_article_list(request):
     """

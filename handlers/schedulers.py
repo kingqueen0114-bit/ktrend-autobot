@@ -165,7 +165,8 @@ def trigger_daily_fetch(request):
                     'warnings': quality['warnings'],
                     'was_rewritten': rewritten
                 },
-                additional_images=additional_images
+                additional_images=additional_images,
+                slug=wp_result.get("slug") if wp_result else None
             )
         except Exception as e:
             error_msg = f"Error processing trend {idx + 1}: {str(e)}"

@@ -2,6 +2,8 @@
 .env
 .env.yaml
 .env.deploy.yaml
+.env.local
+.env*.local
 sa-key.json
 **/service-account-key.json
 **/sa-key.json
@@ -13,6 +15,11 @@ __pycache__/
 *.py[cod]
 venv/
 .venv/
+
+# Node.js
+node_modules/
+.next/
+out/
 
 # Google Cloud SDK (large binary)
 output/google-cloud-sdk/
@@ -35,3 +42,5 @@ test_output/
 # Temporary and Log files
 .gcloud_temp/
 test_logs/
+*.log
+_hidden_test_logs/
