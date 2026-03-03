@@ -29,58 +29,123 @@
     * ファイルの削除や破壊的な変更を行う場合は、事前に簡潔に許可を求めること。
 
 ## 4. プロジェクトの状態 (User Context)
-* **ステータス:** 現在、開発はひと段落している状態。
+* **ステータス:** WordPress → Sanity + Next.js 移行完了（Phase 1-5）。Phase 6（PV growth）は進行中。
 * **再開時の挙動:** まずは前回の変更点や現状のステータスを確認し、次にやるべきタスクを整理してから作業に入ること。
 
 ## 5. ⚠️ 重要な技術的注意事項
+
+### アーキテクチャ概要（移行後）
+
+```
+[LINE Bot / Cloud Scheduler]
+    ↓
+[Cloud Functions (Python)] ← バックエンド（記事生成・品質保証・承認管理）
+    ↓
+[Sanity CMS] ← コンテンツ管理（記事・カテゴリ・タグ）
+    ↓
+[Next.js (Vercel)] ← フロントエンド（SSG/ISR・Draft Mode・編集UI）
+    ↓
+[X (Twitter) 自動投稿] ← 承認時に自動ポスト
+```
+
+### CMS: Sanity
+* **Project ID:** `3pe6cvt2` / **Dataset:** `production`
+* **API:** Sanity HTTP Mutations API + GROQ クエリ
+* **Python クライアント:** `src/sanity_client.py`（Secret Manager or 環境変数 `SANITY_API_TOKEN` でトークン取得）
+* **Portable Text:** `src/portable_text_builder.py`（Markdown → Portable Text 変換）
+* **スキーマ:** `sanity/` ディレクトリ（article, category, tag, siteSettings）
+* **カテゴリ:** 8種 seeded（artist, beauty, fashion, gourmet, koreantrip, event, trend, lifestyle）
+* **Studio:** `sanity/` ディレクトリで `sanity dev` で起動
+
+### フロントエンド: Next.js
+* **ディレクトリ:** `frontend/` (App Router)
+* **デプロイ先:** Vercel
+* **Vercel URL:** `https://frontend-eight-blond-69.vercel.app`
+* **機能:**
+  - Draft Mode（プレビュー: `/api/preview`）
+  - ISR（Incremental Static Regeneration）
+  - Sanity Webhook → `/api/revalidate` でキャッシュ再検証
+  - 編集UI: `/edit/[id]` ページ
+* **主要コンポーネント:**
+  - `SwipeNavigator.tsx` — SmartNews風ページフリップ（スワイプナビゲーション）
+  - `Header.tsx` — モバイルタブ横スクロール、カラーインジケーター
+  - `Sidebar.tsx` — アーティストタグ表示（ピルボタン）
+* **Vercel環境変数:** `SANITY_API_TOKEN`, `PREVIEW_SECRET`, `EDIT_SECRET`, `SANITY_WEBHOOK_SECRET`
 
 ### 依存関係（requirements.txt）
 * **`google-generativeai`** パッケージを使用中。コード内のimportは `import google.generativeai as genai`。
 * ❌ `google-genai`（新SDK）に変更すると **AI機能が全停止する**。importとパッケージ名が一致しないため。
 * 将来的に `google-genai` に移行する場合は、import文も全て `from google import genai` に書き換える必要がある。
 * **Geminiモデル:** `gemini-2.0-flash` を使用（`gemini-1.5-flash` は廃止済み）
+* **tweepy:** `>=4.14.0`（X自動投稿用）
 
 ### Google Custom Search API
 * 403エラーが断続的に発生する既知の問題あり。
 * `fetch_trends.py` の `_search_google` にGemini AIフォールバックを実装済み。
 * API失敗時は `_search_with_gemini` でトレンドデータを生成する。
 
-### view_draft 編集画面の構造
-* `cloud_entry.py` 内の `view_draft` 関数にHTMLテンプレートが直接埋め込まれている（f-string）。
-* **f-string内のJavaScript注意点:**
-  * `{}` → `{{}}` にエスケープが必要
-  * JS template literal の `${var}` → 使用不可。文字列連結で代替すること。
-  * HTML属性値内の `>` → `&gt;` にエスケープすること（HTMLパーサーが壊れる）
-* 編集画面の機能一覧:
-  - 📷 アイキャッチ画像（URLまたはファイルアップロード、GCSに保存）
-  - 📝 画像クレジット・出典欄
-  - 🏷️ カテゴリ選択 + アーティストタグ（カンマ区切り）
-  - ✏️ 記事本文（Markdown、ツールバー付き: H2/H3/太字/引用/リスト/画像挿入）
-  - 🐦 X投稿案 2件（AI自動生成）
-  - 📱 SNS投稿バリエーション（ニュース、Luna A/B）
-  - 👁️ プレビュータブ（Markdown→HTML変換）
+### 編集画面
+* **現行:** Next.js `/edit/[id]` ページに移行済み（`frontend/app/edit/[id]/page.tsx`）
+* **リダイレクト:** `cloud_entry.py` 内の `view_draft` は Next.js 編集ページにリダイレクトする
+* **レガシー（参考用）:** 旧 `view_draft` 関数のf-string HTML テンプレートは `handlers/draft_editor.py` に残存
+  * f-string内のJavaScript注意点:
+    * `{}` → `{{}}` にエスケープが必要
+    * JS template literal の `${var}` → 使用不可。文字列連結で代替すること。
+    * HTML属性値内の `>` → `&gt;` にエスケープすること（HTMLパーサーが壊れる）
 
 ### デプロイ
-* `./deploy.sh` でCloud Functionsにデプロイ（asia-northeast1）
-* 関数URL: `https://ktrend-autobot-nnfhuwwfiq-an.a.run.app`
-* エンドポイント: `/webhook`, `/draft/{id}`, `/approve`, `/reject`
+* **Cloud Functions:** `./deploy.sh` でデプロイ（asia-northeast1）
+  * 関数URL: `https://ktrend-autobot-nnfhuwwfiq-an.a.run.app`
+  * エンドポイント: `/webhook`, `/draft/{id}`, `/approve`, `/reject`
+  * Secret Manager追加: `SANITY_API_TOKEN`, `EDIT_SECRET`, `PREVIEW_SECRET`, `X_API_KEY`, `X_API_KEY_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`
+* **Next.js (Vercel):** `cd frontend && npx vercel --prod`
+* **Sanity Studio:** `cd sanity && sanity deploy`
+* **DNS:** k-trendtimes.com → Vercel
 
-### WordPress連携
+### X (Twitter) 自動投稿
+* **実装:** `src/x_poster.py`（tweepy v1.1 画像アップロード + v2 ツイート投稿）
+* **トリガー:** 記事承認時に自動投稿（`handlers/draft_actions.py`）
+* **API クレデンシャル（環境変数）:**
+  * `X_API_KEY`, `X_API_KEY_SECRET`
+  * `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`
+
+### WordPress連携（⚠️ Sanityに移行済み・レガシー）
+> **注意:** 新規記事は全て Sanity API を使用。以下は移行前の参考情報。
+> `storage_manager.py` は Sanity API 対応に全面書き換え済み（後方互換エイリアスあり）。
+
 * **認証方式:** REST API + Application Password（`WORDPRESS_APP_PASSWORD`環境変数）
 * ❌ `_wp_admin_login` 方式は使わない（過去に未完成で放棄された実装）
-* `save_draft_to_wordpress`: 下書き保存（status: draft）
-* `publish_to_wordpress`: 公開（status: publish）。既存のWP投稿IDがあればステータス更新
-* 画像アップロード: `upload_image_to_wordpress` → REST Media API
+* `save_draft_to_wordpress`: 下書き保存（status: draft）→ **現在は `save_draft` が Sanity API を呼び出す**
+* `publish_to_wordpress`: 公開（status: publish）→ **現在は `publish_article` が Sanity API を呼び出す**
+* 画像アップロード: `upload_image_to_wordpress` → REST Media API → **現在は Sanity Assets API を使用**
 
 ### LINE Bot
 * SDK v1（`linebot`）を使用。v3（`linebot.v3`）ではない。
 * リッチメニュー: 3行縦レイアウト（記事作成 / 未公開記事 / 統計）
 * カテゴリ選択: FlexMessage + message actionで実装（PostbackActionではない）
+* 承認リクエスト: Flex Message（承認/予約/編集/却下/再生成）
+  * 編集ボタン → Next.js 編集ページ URL
+  * プレビューボタン → Next.js プレビューページ URL
 
 ### Firestore
 * コレクション: `article_drafts`
 * フィルタはFieldFilter構文を使用: `.where(filter=FieldFilter(...))`
 * `order_by` と `where` の組み合わせにはFirestoreインデックスが必要
+
+### 主要ファイル変更一覧（移行による）
+
+| ファイル | 変更内容 |
+|---------|---------|
+| `src/sanity_client.py` | **新規** Sanity HTTP API ラッパー（Mutations/GROQ/Assets） |
+| `src/portable_text_builder.py` | **新規** Markdown → Portable Text 変換 |
+| `src/x_poster.py` | **新規** X (Twitter) 自動投稿（v1.1 media + v2 tweet） |
+| `src/storage_manager.py` | **全面書き換え** WP API → Sanity API（後方互換エイリアスあり） |
+| `src/notifier.py` | URL変更（Cloud Functions → Next.js）、プレビューボタン追加 |
+| `handlers/draft_actions.py` | X自動投稿追加、draft_id passing、Sanity経由スケジュール |
+| `handlers/draft_editor.py` | Next.js 編集ページへリダイレクト |
+| `handlers/generation_actions.py` | slug パラメータ追加 |
+| `handlers/schedulers.py` | slug パラメータ追加 |
+| `utils/helpers.py` | draft_id を publish 呼び出しに追加 |
 
 ## 6. 🎯 オーケストレーターモード (Manager Mode)
 
@@ -157,16 +222,19 @@
 
 ### Phase 3: 品質保証 (Quality Assurance)
 - **自動修正:** `checks/auto_fix.py` → JSON修正、フィールド補完
-- **品質チェック:** `checks/quality_check.py` → 7項目スコアリング (score ≥ 90)
-- **ファクトチェック:** `checks/fact_checker.py` → Gemini検証 (fact ≥ 80)
+- **品質チェック:** `checks/quality_check.py` → 7項目スコアリング (score >= 90)
+- **ファクトチェック:** `checks/fact_checker.py` → Gemini検証 (fact >= 80)
 - **自動リライト:** スコア不足時、最大3回リライト
-- **WordPress下書き保存:** `src/storage_manager.py` → REST API
+- **Sanity下書き保存:** `src/storage_manager.py` → Sanity HTTP Mutations API
+  - Markdown → Portable Text 変換（`src/portable_text_builder.py`）
+  - 画像: Sanity Assets API にアップロード
 
 ### Phase 4: 公開管理 (Publication Management)
 - **LINE承認リクエスト:** Flex Message（承認/予約/編集/却下/再生成）
-- **承認 → WordPress公開:** status: draft → publish
-- **編集:** Web UI (`/draft/{id}`) → Markdown編集 + プレビュー
-- **予約公開:** WordPress status: future
+- **承認 → Sanity公開:** ドラフト → 公開ドキュメントに昇格
+- **X自動投稿:** 承認時に `src/x_poster.py` で自動ツイート（画像付き）
+- **編集:** Next.js `/edit/[id]` ページ → Sanity API で保存
+- **予約公開:** Sanity スケジュール公開
 - **却下 → 再生成:** 新しいトレンドで再試行
 
 ### 統計・レポート
