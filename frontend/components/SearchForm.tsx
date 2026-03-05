@@ -32,7 +32,7 @@ export default function SearchForm({defaultQuery = ''}: Props) {
         />
         <button
           type="submit"
-          className="px-5 py-3 bg-[#f84643] text-white hover:bg-[#e03e3b] transition-colors"
+          className="px-5 py-3 bg-[#292929] text-white hover:bg-[#444] transition-colors"
           aria-label="検索"
         >
           <svg

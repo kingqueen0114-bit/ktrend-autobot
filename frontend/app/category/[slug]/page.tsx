@@ -97,7 +97,7 @@ export default async function CategoryPage({params}: Props) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors">
+                      <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
                         {article.title}
                       </h3>
                       {article.excerpt && (
@@ -118,7 +118,7 @@ export default async function CategoryPage({params}: Props) {
                             : ''}
                         </time>
                         {article.artistTags && article.artistTags.length > 0 && article.artistTags.slice(0, 3).map((tag: string) => (
-                          <span key={tag} className="border border-[#f84643]/50 text-[#f84643] text-[10px] px-2 py-0.5 rounded-full">
+                          <span key={tag} className="border border-[#292929]/50 text-[#292929] text-[10px] px-2 py-0.5 rounded-full">
                             {tag}
                           </span>
                         ))}

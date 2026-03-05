@@ -45,7 +45,7 @@ export default async function ArticlesPage({searchParams}: Props) {
       <nav aria-label="パンくずリスト" className="mb-4">
         <ol className="flex items-center gap-1 text-sm text-[#67737e]">
           <li>
-            <Link href="/" className="hover:text-[#f84643] transition-colors">
+            <Link href="/" className="hover:text-[#292929] transition-colors">
               ホーム
             </Link>
           </li>
@@ -55,7 +55,7 @@ export default async function ArticlesPage({searchParams}: Props) {
       </nav>
 
       {/* Page heading */}
-      <h1 className="border-l-4 border-[#f84643] pl-3 text-2xl font-bold text-[#292929] mb-2">
+      <h1 className="border-l-4 border-[#292929] pl-3 text-2xl font-bold text-[#292929] mb-2">
         記事一覧
       </h1>
       <p className="text-sm text-[#67737e] mb-8">
@@ -83,7 +83,7 @@ export default async function ArticlesPage({searchParams}: Props) {
               {currentPage > 1 ? (
                 <Link
                   href={`/articles?page=${currentPage - 1}`}
-                  className="px-4 py-2 border border-gray-300 rounded text-sm text-[#292929] hover:border-[#f84643] hover:text-[#f84643] transition-colors"
+                  className="px-4 py-2 border border-gray-300 rounded text-sm text-[#292929] hover:border-[#292929] hover:text-[#292929] transition-colors"
                 >
                   ← 前へ
                 </Link>
@@ -109,8 +109,8 @@ export default async function ArticlesPage({searchParams}: Props) {
                     href={`/articles?page=${num}`}
                     className={`w-10 h-10 flex items-center justify-center rounded text-sm font-medium transition-colors ${
                       num === currentPage
-                        ? 'bg-[#f84643] text-white'
-                        : 'border border-gray-300 text-[#292929] hover:border-[#f84643] hover:text-[#f84643]'
+                        ? 'bg-[#292929] text-white'
+                        : 'border border-gray-300 text-[#292929] hover:border-[#292929] hover:text-[#292929]'
                     }`}
                   >
                     {num}
@@ -122,7 +122,7 @@ export default async function ArticlesPage({searchParams}: Props) {
               {currentPage < totalPages ? (
                 <Link
                   href={`/articles?page=${currentPage + 1}`}
-                  className="px-4 py-2 border border-gray-300 rounded text-sm text-[#292929] hover:border-[#f84643] hover:text-[#f84643] transition-colors"
+                  className="px-4 py-2 border border-gray-300 rounded text-sm text-[#292929] hover:border-[#292929] hover:text-[#292929] transition-colors"
                 >
                   次へ →
                 </Link>

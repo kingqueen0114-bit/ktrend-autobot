@@ -1,18 +1,19 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 const categories = [
-  {title: 'アーティスト', slug: 'artist', color: '#FFA726'},
-  {title: 'ビューティー', slug: 'beauty', color: '#29B6F6'},
-  {title: 'ファッション', slug: 'fashion', color: '#EC407A'},
-  {title: 'グルメ', slug: 'gourmet', color: '#FF7043'},
-  {title: '韓国旅行', slug: 'koreantrip', color: '#78909C'},
-  {title: 'イベント', slug: 'event', color: '#26A69A'},
-  {title: 'トレンド', slug: 'trend', color: '#7CB342'},
-  {title: 'ライフスタイル', slug: 'lifestyle', color: '#B0BEC5'},
+  { title: 'アーティスト', slug: 'artist', color: '#FFA726' },
+  { title: 'ビューティー', slug: 'beauty', color: '#29B6F6' },
+  { title: 'ファッション', slug: 'fashion', color: '#EC407A' },
+  { title: 'グルメ', slug: 'gourmet', color: '#FF7043' },
+  { title: '韓国旅行', slug: 'koreantrip', color: '#78909C' },
+  { title: 'イベント', slug: 'event', color: '#26A69A' },
+  { title: 'トレンド', slug: 'trend', color: '#7CB342' },
+  { title: 'ライフスタイル', slug: 'lifestyle', color: '#B0BEC5' },
 ]
 
 interface HeaderProps {
@@ -29,7 +30,7 @@ export default function Header({ tickerItems }: HeaderProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement>(null)
   const mobileTabsRef = useRef<HTMLDivElement>(null)
-  const navTouchStart = useRef<{x: number; y: number} | null>(null)
+  const navTouchStart = useRef<{ x: number; y: number } | null>(null)
   const navSwipeActive = useRef(false)
 
   const tickerTexts = tickerItems && tickerItems.length > 0
@@ -197,14 +198,14 @@ export default function Header({ tickerItems }: HeaderProps) {
 
       <header className="w-full">
         {/* Top bar with ticker */}
-        <div className="bg-gradient-to-r from-[#f84643] to-[#ff6b6b] text-white text-xs py-1.5">
+        <div className="bg-[#292929] text-white text-xs py-1.5">
           <div className="max-w-6xl mx-auto px-4 flex items-center">
             {/* Hot News label */}
             <div className="flex-shrink-0 flex items-center gap-1.5 mr-3">
               <span className="font-bold text-white text-xs whitespace-nowrap">Hot News</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-1.41-1.41L12.17 12 8.59 8.41 10 7l5 5-5 5z" fill="none"/>
-                <path d="M13.5 0.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z" fill="currentColor"/>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-1.41-1.41L12.17 12 8.59 8.41 10 7l5 5-5 5z" fill="none" />
+                <path d="M13.5 0.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z" fill="currentColor" />
               </svg>
             </div>
             {/* News ticker */}
@@ -231,17 +232,19 @@ export default function Header({ tickerItems }: HeaderProps) {
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
             <Link href="/" className="inline-block">
-              <h1
-                className="text-[32px] md:text-[40px] font-bold tracking-tight text-[#292929]"
-                style={{fontFamily: "'Encode Sans Condensed', sans-serif"}}
-              >
-                K-TREND TIMES
-              </h1>
+              <Image
+                src="/logo.png"
+                alt="K-TREND TIMES"
+                width={280}
+                height={40}
+                className="h-[32px] md:h-[40px] w-auto"
+                priority
+              />
             </Link>
             {/* Search icon button */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-[#292929] hover:text-[#f84643] transition-colors"
+              className="p-2 text-[#292929] hover:text-[#555] transition-colors"
               aria-label="検索"
             >
               <svg
@@ -285,7 +288,7 @@ export default function Header({ tickerItems }: HeaderProps) {
                 />
                 <button
                   onClick={() => handleSearch(searchQuery)}
-                  className="px-4 py-2.5 bg-[#f84643] text-white hover:bg-[#e03e3b] transition-colors"
+                  className="px-4 py-2.5 bg-[#292929] text-white hover:bg-[#444] transition-colors"
                   aria-label="検索実行"
                 >
                   <svg
@@ -311,7 +314,7 @@ export default function Header({ tickerItems }: HeaderProps) {
       {/* Category navigation - outside header so sticky works against viewport */}
       <nav
         className="sticky top-0 z-50 bg-white"
-        style={{borderBottom: `4px solid ${activeTabColor}`}}
+        style={{ borderBottom: `4px solid ${activeTabColor}` }}
       >
         <div className="max-w-6xl mx-auto">
           {/* Mobile: SmartNews-style horizontal scrollable tabs */}
@@ -324,10 +327,9 @@ export default function Header({ tickerItems }: HeaderProps) {
             <Link
               href="/"
               data-active={isHome ? 'true' : 'false'}
-              className={`snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] ${
-                isHome ? 'px-5 py-3 text-[15px] shadow-md' : 'opacity-85 px-4 py-2.5 text-[13px]'
-              }`}
-              style={{backgroundColor: isHome ? '#333333' : '#9E9E9E'}}
+              className={`snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] ${isHome ? 'px-5 py-3 text-[15px] shadow-md' : 'opacity-85 px-4 py-2.5 text-[13px]'
+                }`}
+              style={{ backgroundColor: isHome ? '#333333' : '#9E9E9E' }}
             >
               主要
             </Link>
@@ -338,10 +340,9 @@ export default function Header({ tickerItems }: HeaderProps) {
                   key={cat.slug}
                   href={'/category/' + cat.slug}
                   data-active={isActive ? 'true' : 'false'}
-                  className={`snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] ${
-                    isActive ? 'px-5 py-3 text-[15px] shadow-md' : 'opacity-85 px-4 py-2.5 text-[13px]'
-                  }`}
-                  style={{backgroundColor: isActive ? cat.color : cat.color + 'CC'}}
+                  className={`snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] ${isActive ? 'px-5 py-3 text-[15px] shadow-md' : 'opacity-85 px-4 py-2.5 text-[13px]'
+                    }`}
+                  style={{ backgroundColor: isActive ? cat.color : cat.color + 'CC' }}
                 >
                   {cat.title}
                 </Link>
@@ -357,16 +358,16 @@ export default function Header({ tickerItems }: HeaderProps) {
                 href="/"
                 className="flex-shrink-0 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
                 style={{
-                  color: isHome ? '#f84643' : '#292929',
-                  borderBottomColor: isHome ? '#f84643' : 'transparent',
+                  color: isHome ? '#292929' : '#292929',
+                  borderBottomColor: isHome ? '#292929' : 'transparent',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f84643'
+                  e.currentTarget.style.backgroundColor = '#292929'
                   e.currentTarget.style.color = '#fff'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent'
-                  e.currentTarget.style.color = isHome ? '#f84643' : '#292929'
+                  e.currentTarget.style.color = isHome ? '#292929' : '#292929'
                 }}
               >
                 ホーム
@@ -408,7 +409,7 @@ export default function Header({ tickerItems }: HeaderProps) {
           <div className="flex justify-between items-center px-4 py-4 border-b border-gray-200">
             <span
               className="text-xl font-bold text-[#292929]"
-              style={{fontFamily: "'Encode Sans Condensed', sans-serif"}}
+              style={{ fontFamily: "'Encode Sans Condensed', sans-serif" }}
             >
               K-TREND TIMES
             </span>
@@ -451,7 +452,7 @@ export default function Header({ tickerItems }: HeaderProps) {
               />
               <button
                 onClick={() => handleSearch(mobileSearchQuery)}
-                className="px-4 py-2.5 bg-[#f84643] text-white"
+                className="px-4 py-2.5 bg-[#292929] text-white"
                 aria-label="検索実行"
               >
                 <svg
@@ -478,9 +479,9 @@ export default function Header({ tickerItems }: HeaderProps) {
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center px-6 py-4 text-base font-medium border-b border-gray-50 transition-colors"
               style={{
-                color: isHome ? '#f84643' : '#292929',
+                color: isHome ? '#292929' : '#292929',
                 borderLeftWidth: '4px',
-                borderLeftColor: isHome ? '#f84643' : 'transparent',
+                borderLeftColor: isHome ? '#292929' : 'transparent',
               }}
             >
               ホーム

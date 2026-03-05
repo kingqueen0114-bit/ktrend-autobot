@@ -44,7 +44,7 @@ export default async function SearchPage({searchParams}: Props) {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-[#292929] mb-2">
               {query ? (
-                <>「<span className="text-[#f84643]">{query}</span>」の検索結果</>
+                <>「<span className="text-[#292929]">{query}</span>」の検索結果</>
               ) : (
                 '記事を検索'
               )}
@@ -71,7 +71,7 @@ export default async function SearchPage({searchParams}: Props) {
               </p>
               <Link
                 href="/"
-                className="inline-block border border-[#f84643] text-[#f84643] hover:bg-[#f84643] hover:text-white px-6 py-2 rounded transition-colors text-sm font-medium"
+                className="inline-block border border-[#292929] text-[#292929] hover:bg-[#292929] hover:text-white px-6 py-2 rounded transition-colors text-sm font-medium"
               >
                 トップページに戻る
               </Link>

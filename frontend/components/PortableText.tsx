@@ -48,7 +48,7 @@ const components = {
       <h3 className="text-xl font-bold text-[#292929] mt-6 mb-3">{children}</h3>
     ),
     blockquote: ({children}: {children?: React.ReactNode}) => (
-      <blockquote className="border-l-4 border-[#f84643] pl-4 my-4 text-[#67737e] italic">
+      <blockquote className="border-l-4 border-[#292929] pl-4 my-4 text-[#67737e] italic">
         {children}
       </blockquote>
     ),

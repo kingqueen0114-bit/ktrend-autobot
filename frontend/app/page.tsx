@@ -87,7 +87,7 @@ export default async function HomePage() {
                 )}
 
                 {/* Section heading */}
-                <h2 className="border-l-4 border-[#f84643] pl-3 text-lg font-bold text-[#292929] mb-4">
+                <h2 className="border-l-4 border-[#292929] pl-3 text-lg font-bold text-[#292929] mb-4">
                   最新記事
                 </h2>
 
@@ -113,7 +113,7 @@ export default async function HomePage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors">
+                        <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
                           {article.title}
                         </h3>
                         {article.excerpt && (
@@ -134,7 +134,7 @@ export default async function HomePage() {
                               : ''}
                           </time>
                           {article.artistTags && article.artistTags.length > 0 && article.artistTags.slice(0, 3).map((tag: string) => (
-                            <span key={tag} className="border border-[#f84643]/50 text-[#f84643] text-[10px] px-2 py-0.5 rounded-full">
+                            <span key={tag} className="border border-[#292929]/50 text-[#292929] text-[10px] px-2 py-0.5 rounded-full">
                               {tag}
                             </span>
                           ))}
@@ -148,7 +148,7 @@ export default async function HomePage() {
                 <div className="flex justify-center mt-10">
                   <Link
                     href="/articles"
-                    className="border border-[#f84643] text-[#f84643] hover:bg-[#f84643] hover:text-white px-8 py-2.5 rounded transition-colors text-sm font-medium"
+                    className="border border-[#292929] text-[#292929] hover:bg-[#292929] hover:text-white px-8 py-2.5 rounded transition-colors text-sm font-medium"
                   >
                     もっと読む
                   </Link>

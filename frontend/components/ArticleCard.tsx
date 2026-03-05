@@ -64,7 +64,7 @@ export default function ArticleCard({article, variant = 'default', rank}: Props)
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors">
+          <h4 className="text-sm font-medium text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
             {article.title}
           </h4>
           <time className="text-xs text-[#67737e] mt-1 block">{date}</time>
@@ -97,7 +97,7 @@ export default function ArticleCard({article, variant = 'default', rank}: Props)
             </div>
           )}
         </div>
-        <h2 className="mt-3 text-xl md:text-2xl font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors">
+        <h2 className="mt-3 text-xl md:text-2xl font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
           {article.title}
         </h2>
         {article.excerpt && (
@@ -130,7 +130,7 @@ export default function ArticleCard({article, variant = 'default', rank}: Props)
           </div>
         )}
       </div>
-      <h3 className="mt-2 text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors">
+      <h3 className="mt-2 text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
         {article.title}
       </h3>
       {article.excerpt && (
@@ -139,13 +139,13 @@ export default function ArticleCard({article, variant = 'default', rank}: Props)
       {article.artistTags && article.artistTags.length > 0 && (
         <div className="flex gap-1 flex-wrap mt-1.5">
           {article.artistTags.slice(0, 3).map((tag: string) => (
-            <span key={tag} className="border border-[#f84643]/50 text-[#f84643] text-[10px] px-2 py-0.5 rounded-full">
+            <span key={tag} className="border border-[#292929]/50 text-[#292929] text-[10px] px-2 py-0.5 rounded-full">
               {tag}
             </span>
           ))}
         </div>
       )}
-      <span className="text-[#f84643] text-xs font-medium mt-1 inline-block">
+      <span className="text-[#292929] text-xs font-medium mt-1 inline-block">
         続きを読む &raquo;
       </span>
       <time className="text-xs text-[#67737e] mt-1 block">{date}</time>

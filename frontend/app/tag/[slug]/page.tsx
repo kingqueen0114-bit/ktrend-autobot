@@ -56,7 +56,7 @@ export default async function TagPage({params}: Props) {
         <nav aria-label="パンくずリスト" className="mb-4">
           <ol className="flex items-center gap-1 text-sm text-[#67737e]">
             <li>
-              <Link href="/" className="hover:text-[#f84643] transition-colors">
+              <Link href="/" className="hover:text-[#292929] transition-colors">
                 ホーム
               </Link>
             </li>
@@ -66,7 +66,7 @@ export default async function TagPage({params}: Props) {
         </nav>
 
         <div className="flex items-center gap-3 mb-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f84643" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#292929" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
             <line x1="7" y1="7" x2="7.01" y2="7" />
           </svg>
@@ -87,7 +87,7 @@ export default async function TagPage({params}: Props) {
               </p>
               <Link
                 href="/"
-                className="inline-block border border-[#f84643] text-[#f84643] hover:bg-[#f84643] hover:text-white px-6 py-2 rounded transition-colors text-sm font-medium mt-4"
+                className="inline-block border border-[#292929] text-[#292929] hover:bg-[#292929] hover:text-white px-6 py-2 rounded transition-colors text-sm font-medium mt-4"
               >
                 トップページに戻る
               </Link>

@@ -22,7 +22,7 @@ export default function ScrollToTop() {
     <button
       onClick={scrollToTop}
       aria-label="ページ上部に戻る"
-      className={`fixed bottom-6 right-6 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-[#f84643] text-white shadow-lg hover:bg-[#e03e3b] transition-opacity duration-300 cursor-pointer ${
+      className={`fixed bottom-6 right-6 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-[#292929] text-white shadow-lg hover:bg-[#444] transition-opacity duration-300 cursor-pointer ${
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >

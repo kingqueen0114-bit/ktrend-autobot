@@ -134,7 +134,7 @@ export default async function ArticlePage({params}: Props) {
             <nav aria-label="パンくずリスト" className="mb-4">
               <ol className="flex items-center flex-wrap gap-1 text-sm text-[#67737e]">
                 <li>
-                  <Link href="/" className="hover:text-[#f84643] transition-colors">
+                  <Link href="/" className="hover:text-[#292929] transition-colors">
                     ホーム
                   </Link>
                 </li>
@@ -144,7 +144,7 @@ export default async function ArticlePage({params}: Props) {
                     <li>
                       <Link
                         href={`/category/${article.category.slug.current}`}
-                        className="hover:text-[#f84643] transition-colors"
+                        className="hover:text-[#292929] transition-colors"
                       >
                         {article.category.title}
                       </Link>
@@ -251,7 +251,7 @@ export default async function ArticlePage({params}: Props) {
             {/* Artist Tags */}
             {article.artistTags && article.artistTags.length > 0 && (
               <div className="mt-6 flex items-center gap-2 flex-wrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f84643" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#292929" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
                   <line x1="7" y1="7" x2="7.01" y2="7" />
                 </svg>
@@ -259,7 +259,7 @@ export default async function ArticlePage({params}: Props) {
                   <Link
                     key={tag}
                     href={`/artist/${encodeURIComponent(tag)}`}
-                    className="border border-[#f84643] text-[#f84643] text-xs font-medium px-3 py-1 rounded-full hover:bg-[#f84643] hover:text-white transition-colors"
+                    className="border border-[#292929] text-[#292929] text-xs font-medium px-3 py-1 rounded-full hover:bg-[#292929] hover:text-white transition-colors"
                   >
                     {tag}
                   </Link>
@@ -274,7 +274,7 @@ export default async function ArticlePage({params}: Props) {
                 {adjacentArticles.prev ? (
                   <Link
                     href={`/articles/${adjacentArticles.prev.slug.current}`}
-                    className="group flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-[#f84643] transition-colors"
+                    className="group flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-[#292929] transition-colors"
                   >
                     {adjacentArticles.prev.mainImage && (
                       <div className="relative w-16 h-16 shrink-0 rounded overflow-hidden">
@@ -289,7 +289,7 @@ export default async function ArticlePage({params}: Props) {
                     )}
                     <div className="min-w-0">
                       <span className="text-xs text-[#67737e] block mb-1">前の記事</span>
-                      <span className="text-sm font-medium text-[#292929] group-hover:text-[#f84643] transition-colors line-clamp-2">
+                      <span className="text-sm font-medium text-[#292929] group-hover:text-[#292929] transition-colors line-clamp-2">
                         {adjacentArticles.prev.title}
                       </span>
                     </div>
@@ -302,7 +302,7 @@ export default async function ArticlePage({params}: Props) {
                 {adjacentArticles.next ? (
                   <Link
                     href={`/articles/${adjacentArticles.next.slug.current}`}
-                    className="group flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-[#f84643] transition-colors md:flex-row-reverse md:text-right"
+                    className="group flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-[#292929] transition-colors md:flex-row-reverse md:text-right"
                   >
                     {adjacentArticles.next.mainImage && (
                       <div className="relative w-16 h-16 shrink-0 rounded overflow-hidden">
@@ -317,7 +317,7 @@ export default async function ArticlePage({params}: Props) {
                     )}
                     <div className="min-w-0">
                       <span className="text-xs text-[#67737e] block mb-1">次の記事</span>
-                      <span className="text-sm font-medium text-[#292929] group-hover:text-[#f84643] transition-colors line-clamp-2">
+                      <span className="text-sm font-medium text-[#292929] group-hover:text-[#292929] transition-colors line-clamp-2">
                         {adjacentArticles.next.title}
                       </span>
                     </div>
@@ -331,7 +331,7 @@ export default async function ArticlePage({params}: Props) {
             {/* Related articles */}
             {relatedArticles.length > 0 && (
               <section className="mt-10">
-                <h2 className="text-lg font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#f84643]">
+                <h2 className="text-lg font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#292929]">
                   関連記事
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -345,7 +345,7 @@ export default async function ArticlePage({params}: Props) {
             {/* Recommended articles */}
             {recommendedArticles.length > 0 && (
               <section className="mt-10">
-                <h2 className="text-lg font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#f84643]">
+                <h2 className="text-lg font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#292929]">
                   あなたへのおすすめ記事
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

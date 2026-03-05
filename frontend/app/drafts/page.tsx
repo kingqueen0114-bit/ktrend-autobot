@@ -50,7 +50,7 @@ export default async function DraftsPage() {
             return (
               <div
                 key={draft._id}
-                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-[#f84643] transition-colors"
+                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-[#292929] transition-colors"
               >
                 {imageUrl && (
                   <div className="relative w-[80px] h-[53px] flex-shrink-0 overflow-hidden rounded">

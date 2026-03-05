@@ -51,7 +51,7 @@ export default async function ArtistTagPage({params}: Props) {
       <nav aria-label="パンくずリスト" className="mb-6">
         <ol className="flex items-center gap-1 text-sm text-[#67737e]">
           <li>
-            <Link href="/" className="hover:text-[#f84643] transition-colors">
+            <Link href="/" className="hover:text-[#292929] transition-colors">
               ホーム
             </Link>
           </li>
@@ -63,7 +63,7 @@ export default async function ArtistTagPage({params}: Props) {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f84643" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#292929" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
             <line x1="7" y1="7" x2="7.01" y2="7" />
           </svg>
@@ -131,7 +131,7 @@ export default async function ArtistTagPage({params}: Props) {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors">
+                  <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
                     {article.title}
                   </h3>
                   {article.excerpt && (

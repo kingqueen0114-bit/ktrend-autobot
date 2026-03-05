@@ -24,7 +24,7 @@ export default function Footer() {
             href="https://x.com/ktrendtimes"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-400 hover:text-[#f84643] transition-colors"
+            className="text-gray-400 hover:text-[#292929] transition-colors"
             aria-label="X (Twitter)"
           >
             <svg
@@ -63,7 +63,7 @@ export default function Footer() {
                 <li key={cat.slug}>
                   <Link
                     href={`/category/${cat.slug}`}
-                    className="text-sm hover:text-[#f84643] transition-colors"
+                    className="text-sm hover:text-[#292929] transition-colors"
                   >
                     {cat.title}
                   </Link>
@@ -77,17 +77,17 @@ export default function Footer() {
             <h4 className="text-white text-sm font-bold mb-3 uppercase tracking-wider">リンク</h4>
             <ul className="space-y-1.5">
               <li>
-                <Link href="/sitemap.xml" className="text-sm hover:text-[#f84643] transition-colors">
+                <Link href="/sitemap.xml" className="text-sm hover:text-[#292929] transition-colors">
                   サイトマップ
                 </Link>
               </li>
               <li>
-                <Link href="/privacy-policy" className="text-sm hover:text-[#f84643] transition-colors">
+                <Link href="/privacy-policy" className="text-sm hover:text-[#292929] transition-colors">
                   プライバシーポリシー
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-sm hover:text-[#f84643] transition-colors">
+                <Link href="/contact" className="text-sm hover:text-[#292929] transition-colors">
                   お問い合わせ
                 </Link>
               </li>

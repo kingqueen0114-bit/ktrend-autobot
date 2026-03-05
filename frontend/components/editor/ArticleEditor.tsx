@@ -201,7 +201,7 @@ export default function ArticleEditor({id, token}: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f84643]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#292929]" />
       </div>
     )
   }
@@ -225,7 +225,7 @@ export default function ArticleEditor({id, token}: Props) {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-3 text-sm font-medium text-center border-b-2 transition-colors ${
                 activeTab === tab
-                  ? 'text-[#f84643] border-[#f84643]'
+                  ? 'text-[#292929] border-[#292929]'
                   : 'text-[#67737e] border-transparent hover:text-[#292929]'
               }`}
             >
@@ -262,7 +262,7 @@ export default function ArticleEditor({id, token}: Props) {
                   setTitle(e.target.value)
                   triggerAutoSave()
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none"
               />
             </div>
 
@@ -275,7 +275,7 @@ export default function ArticleEditor({id, token}: Props) {
                   setCategoryId(e.target.value)
                   triggerAutoSave()
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none"
               >
                 <option value="">選択してください</option>
                 {categories.map((cat) => (
@@ -299,7 +299,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 placeholder="BTS, BLACKPINK, NewJeans"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none"
               />
               {artistTagsStr && (
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -326,7 +326,7 @@ export default function ArticleEditor({id, token}: Props) {
                   setImageCredit(e.target.value)
                   triggerAutoSave()
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none"
               />
             </div>
 
@@ -340,7 +340,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y"
               />
             </div>
 
@@ -356,7 +356,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={15}
-                className="w-full border border-gray-300 rounded-md p-3 font-mono text-sm focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y"
+                className="w-full border border-gray-300 rounded-md p-3 font-mono text-sm focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y"
                 placeholder="Markdown形式で記事本文を入力..."
               />
             </div>
@@ -379,7 +379,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={4}
-                className={`w-full px-3 py-2 border rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y ${
+                className={`w-full px-3 py-2 border rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y ${
                   xPost1.length > 280 ? 'border-red-400' : 'border-gray-300'
                 }`}
               />
@@ -398,7 +398,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={4}
-                className={`w-full px-3 py-2 border rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y ${
+                className={`w-full px-3 py-2 border rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y ${
                   xPost2.length > 280 ? 'border-red-400' : 'border-gray-300'
                 }`}
               />
@@ -416,7 +416,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y"
               />
             </div>
 
@@ -430,7 +430,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y"
               />
             </div>
 
@@ -444,7 +444,7 @@ export default function ArticleEditor({id, token}: Props) {
                   triggerAutoSave()
                 }}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#f84643] focus:border-transparent outline-none resize-y"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-[#292929] focus:border-transparent outline-none resize-y"
               />
             </div>
           </div>
@@ -491,7 +491,7 @@ export default function ArticleEditor({id, token}: Props) {
             <button
               onClick={handlePublish}
               disabled={publishing}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#f84643] hover:bg-[#e03e3b] rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#292929] hover:bg-[#444] rounded-lg transition-colors disabled:opacity-50"
             >
               {publishing ? '公開中...' : '🚀 公開する'}
             </button>
