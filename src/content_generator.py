@@ -31,19 +31,24 @@ class ContentGenerator:
         if not self.api_key:
             raise ValueError("API key missing")
             
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "tools": [{"googleSearch": {}}],
             "generationConfig": {
-                "temperature": 0.7
+                "temperature": 0.5,
+                "maxOutputTokens": 2000,
             }
         }
         
-        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=90)
         
         if response.status_code != 200:
-            log_error("GEMINI_API_ERROR", f"Gemini API returned status {response.status_code}", details=response.text)
+            error_body = ""
+            try:
+                error_body = response.text[:500]
+            except Exception:
+                pass
+            log_error("GEMINI_API_ERROR_GENERATE", f"Failed with status {response.status_code}", detail=error_body, details=response.text)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
