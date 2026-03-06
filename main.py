@@ -40,7 +40,10 @@ def main(request):
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
-            return f"Error Traceback:\n{tb}", 500
+            extra = ""
+            if hasattr(e, 'response') and e.response is not None:
+                extra = f"\nResponse Body:\n{e.response.text}"
+            return f"Error Traceback:\n{tb}{extra}", 500
     if action == 'stats_report':
         return trigger_stats_report(request)
     if action == 'progress_report':

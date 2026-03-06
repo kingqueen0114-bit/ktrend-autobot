@@ -153,6 +153,8 @@ class TrendFetcher:
             return results
         except Exception as e:
             error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {mask_url_keys(str(e))}"
+            if 'response' in locals() and hasattr(response, 'text'):
+                error_msg += f"\nResponse body:\n{response.text[:1000]}"
             log_error("GEMINI_FALLBACK_FAILED", error_msg, error=e)
             raise RuntimeError(error_msg)
 
