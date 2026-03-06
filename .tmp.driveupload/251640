@@ -1,5 +1,0 @@
-export function isInteractive() {
-    return process.stdout.isTTY && process.env.TERM !== 'dumb' && !('CI' in process.env);
-}
-
-//# sourceMappingURL=isInteractive.js.map

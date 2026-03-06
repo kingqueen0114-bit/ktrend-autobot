@@ -1,1 +1,0 @@
-{"version":3,"file":"BufferList.d.ts","sourceRoot":"","sources":["../../src/tar-webstream/BufferList.ts"],"names":[],"mappings":"AAOA,qBAAa,UAAU;IACd,QAAQ,EAAE,MAAM,CAAI;IACpB,OAAO,EAAE,MAAM,CAAI;IAC1B,OAAO,CAAC,OAAO,CAAQ;IACvB,OAAO,CAAC,KAAK,CAAkB;;IAQ/B,IAAI,CAAC,MAAM,EAAE,UAAU;IAKvB,KAAK,CAAC,IAAI,EAAE,MAAM;IAkBlB,UAAU,CAAC,IAAI,EAAE,MAAM;IAIvB,OAAO,CAAC,KAAK;CAkBd"}

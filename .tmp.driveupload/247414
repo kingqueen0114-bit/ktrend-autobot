@@ -1,9 +1,0 @@
-import type { Logger } from '../../utils/logger.js';
-import type { AuthParams, BlueprintLog } from '../../utils/types.js';
-export declare const logsUrl: string;
-export declare function getLogs(stackId: string, auth: AuthParams, logger: ReturnType<typeof Logger>): Promise<{
-    logs: BlueprintLog[];
-    ok: boolean;
-    error: string | null;
-}>;
-export declare function getRecentLogs(logs: BlueprintLog[], limit?: number): BlueprintLog[];

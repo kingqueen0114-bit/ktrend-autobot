@@ -1,1 +1,0 @@
-{"version":3,"sources":["../../src/util/waitForAsync.ts"],"sourcesContent":["export const waitForAsync = (ms = 0): Promise<void> => {\n  return new Promise((resolve) => setTimeout(resolve, ms))\n}\n"],"names":["waitForAsync","ms","Promise","resolve","setTimeout"],"mappings":"AAAA,OAAO,MAAMA,eAAe,CAACC,KAAK,CAAC;IACjC,OAAO,IAAIC,QAAQ,CAACC,UAAYC,WAAWD,SAASF;AACtD,EAAC"}

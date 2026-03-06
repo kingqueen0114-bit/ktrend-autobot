@@ -44,3 +44,4 @@ test_output/
 test_logs/
 *.log
 _hidden_test_logs/
+.tmp.driveupload/

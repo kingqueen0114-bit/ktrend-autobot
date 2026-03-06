@@ -1,1 +1,0 @@
-{"version":3,"file":"getValueType.js","sourceRoot":"","sources":["../../../src/runner/utils/getValueType.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,YAAY,CAAC,KAAc;IACzC,IAAI,KAAK,CAAC,OAAO,CAAC,KAAK,CAAC,EAAE,CAAC;QACzB,OAAO,OAAO,CAAA;IAChB,CAAC;IACD,OAAO,KAAK,KAAK,IAAI,CAAC,CAAC,CAAC,MAAM,CAAC,CAAC,CAAC,OAAO,KAAK,CAAA;AAC/C,CAAC"}
