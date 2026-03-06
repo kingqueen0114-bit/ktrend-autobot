@@ -1,6 +1,7 @@
 """
 Edit action handlers for K-Trend AutoBot.
 Handles editing draft titles, content, and session management.
+Edits are synced to both Firestore (draft metadata) and Sanity CMS (published content).
 """
 import os
 from utils.logging_config import log_event, log_error
@@ -24,6 +25,15 @@ def show_quick_edit_options(draft_id: str, line_bot_api, reply_token):
         from linebot.models import FlexSendMessage
         log_event("QUICK_EDIT", f"Showing edit options for draft: {draft_id}")
 
+        # Next.js edit page URL
+        next_app_url = os.environ.get('NEXT_APP_URL', 'https://k-trendtimes.com')
+        edit_secret = os.environ.get('EDIT_SECRET', '')
+
+        # Generate HMAC token for secure edit URL
+        import hmac, hashlib
+        edit_token = hmac.new(edit_secret.encode(), draft_id.encode(), hashlib.sha256).hexdigest() if edit_secret else ""
+        edit_uri = f"{next_app_url}/edit/{draft_id}?token={edit_token}"
+
         flex_contents = {
             "type": "bubble",
             "body": {
@@ -42,7 +52,7 @@ def show_quick_edit_options(draft_id: str, line_bot_api, reply_token):
                     {"type": "button", "style": "primary", "height": "sm", "action": {"type": "postback", "label": "✏️ タイトル編集", "data": f"action=edit_title&draft_id={draft_id}", "displayText": "タイトルを編集"}},
                     {"type": "button", "style": "primary", "height": "sm", "action": {"type": "postback", "label": "📝 メタ説明編集", "data": f"action=edit_meta&draft_id={draft_id}", "displayText": "メタ説明を編集"}},
                     {"type": "button", "style": "secondary", "height": "sm", "action": {"type": "postback", "label": "🔄 記事再生成", "data": f"action=regenerate_article&draft_id={draft_id}", "displayText": "記事を再生成"}},
-                    {"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "🌐 WPで編集", "uri": f"{app_url}/view-draft?id={draft_id}"}},
+                    {"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "🌐 エディタで編集", "uri": edit_uri}},
                     {"type": "button", "style": "link", "height": "sm", "action": {"type": "postback", "label": "❌ キャンセル", "data": "action=done", "displayText": "キャンセル"}}
                 ]
             }
@@ -54,15 +64,19 @@ def show_quick_edit_options(draft_id: str, line_bot_api, reply_token):
         log_error("QUICK_EDIT_ERROR", f"Failed to show edit options: {str(e)}", error=e)
         try:
             from linebot.models import TextMessage
-            app_url = os.environ.get('APP_URL', 'https://ktrend-autobot-nnfhuwwfiq-an.a.run.app')
-            line_bot_api.reply_message(reply_token, TextMessage(text=f"❌ 編集オプションの表示に失敗しました。\nview-draft URLから編集してください:\n{app_url}/view-draft?id={draft_id}"))
+            next_app_url = os.environ.get('NEXT_APP_URL', 'https://k-trendtimes.com')
+            line_bot_api.reply_message(reply_token, TextMessage(text=f"❌ 編集オプションの表示に失敗しました。\nエディタから編集してください:\n{next_app_url}/edit/{draft_id}"))
         except Exception as fallback_error:
             log_error("QUICK_EDIT_FALLBACK_ERROR", f"Fallback also failed: {str(fallback_error)}")
 
 def process_edit_text(user_id: str, text: str, line_bot_api) -> bool:
-    """Process edit text input from user. Returns True if edit was processed."""
+    """Process edit text input from user. Returns True if edit was processed.
+    
+    Updates both Firestore (draft metadata) and Sanity CMS (draft document).
+    """
     from src.storage_manager import StorageManager
     from src.notifier import Notifier
+    from src import sanity_client
 
     session = get_edit_session(user_id)
     if not session:
@@ -83,11 +97,20 @@ def process_edit_text(user_id: str, text: str, line_bot_api) -> bool:
 
         draft_data = draft.to_dict()
         cms_content = draft_data.get('cms_content', {})
+        sanity_draft_id = draft_data.get('sanity_draft_id') or draft_id
 
         if edit_type == 'title':
             new_title = text.strip()[:100]
             cms_content['title'] = new_title
             draft_ref.update({'cms_content': cms_content})
+
+            # Sync to Sanity draft
+            try:
+                sanity_client.patch(f"drafts.{sanity_draft_id}", set_fields={"title": new_title})
+                log_event("SANITY_TITLE_SYNCED", f"Sanity draft title synced for {sanity_draft_id}")
+            except Exception as sanity_err:
+                log_error("SANITY_TITLE_SYNC_ERROR", f"Failed to sync title to Sanity: {sanity_err}", error=sanity_err)
+
             log_event("EDIT_TITLE", f"Draft {draft_id} title updated to: {new_title[:30]}...")
 
             import requests, json
@@ -99,6 +122,14 @@ def process_edit_text(user_id: str, text: str, line_bot_api) -> bool:
             new_meta = text.strip()[:160]
             cms_content['meta_description'] = new_meta
             draft_ref.update({'cms_content': cms_content})
+
+            # Sync to Sanity draft
+            try:
+                sanity_client.patch(f"drafts.{sanity_draft_id}", set_fields={"metaDescription": new_meta})
+                log_event("SANITY_META_SYNCED", f"Sanity draft meta synced for {sanity_draft_id}")
+            except Exception as sanity_err:
+                log_error("SANITY_META_SYNC_ERROR", f"Failed to sync meta to Sanity: {sanity_err}", error=sanity_err)
+
             log_event("EDIT_META", f"Draft {draft_id} meta updated")
 
             import requests
