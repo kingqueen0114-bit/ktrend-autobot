@@ -4,6 +4,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ScrollToTop from '@/components/ScrollToTop'
 import SwipeNavigator from '@/components/SwipeNavigator'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
 
 const notoSansJP = Noto_Sans_JP({
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja" className={`${notoSansJP.variable} ${encodeSans.variable}`}>
       <body className="font-sans bg-white text-[#292929] antialiased">
+        <GoogleAnalytics />
         <Header />
         <main className="min-h-screen">
           <SwipeNavigator>{children}</SwipeNavigator>
