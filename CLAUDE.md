@@ -60,12 +60,14 @@
 ### フロントエンド: Next.js
 * **ディレクトリ:** `frontend/` (App Router)
 * **デプロイ先:** Vercel
-* **Vercel URL:** `https://frontend-eight-blond-69.vercel.app`
+* **カスタムドメイン:** `https://k-trendtimes.com` (= `www.k-trendtimes.com`)
+* **Vercel URL（内部）:** `https://frontend-eight-blond-69.vercel.app`
 * **機能:**
   - Draft Mode（プレビュー: `/api/preview`）
   - ISR（Incremental Static Regeneration）
   - Sanity Webhook → `/api/revalidate` でキャッシュ再検証
   - 編集UI: `/edit/[id]` ページ
+  - GA4 トラッキング: `G-462773259`
 * **主要コンポーネント:**
   - `SwipeNavigator.tsx` — SmartNews風ページフリップ（スワイプナビゲーション）
   - `Header.tsx` — モバイルタブ横スクロール、カラーインジケーター
@@ -100,7 +102,7 @@
   * Secret Manager追加: `SANITY_API_TOKEN`, `EDIT_SECRET`, `PREVIEW_SECRET`, `X_API_KEY`, `X_API_KEY_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`
 * **Next.js (Vercel):** `cd frontend && npx vercel --prod`
 * **Sanity Studio:** `cd sanity && sanity deploy`
-* **DNS:** k-trendtimes.com → Vercel
+* **DNS:** k-trendtimes.com → Vercel（A: `216.198.79.1`, CNAME www: `09c5d989656e13ac.vercel-dns-017.com.`）
 
 ### X (Twitter) 自動投稿
 * **実装:** `src/x_poster.py`（tweepy v1.1 画像アップロード + v2 ツイート投稿）
@@ -121,11 +123,13 @@
 
 ### LINE Bot
 * SDK v1（`linebot`）を使用。v3（`linebot.v3`）ではない。
+* Webhook URL: `https://ktrend-autobot-nnfhuwwfiq-an.a.run.app`
 * リッチメニュー: 3行縦レイアウト（記事作成 / 未公開記事 / 統計）
 * カテゴリ選択: FlexMessage + message actionで実装（PostbackActionではない）
 * 承認リクエスト: Flex Message（承認/予約/編集/却下/再生成）
-  * 編集ボタン → Next.js 編集ページ URL
+  * 編集ボタン → Next.js 編集ページ URL (`k-trendtimes.com/edit/{id}`)
   * プレビューボタン → Next.js プレビューページ URL
+* LINE編集 → Firestore + **Sanity同期** (`edit_actions.py` の `process_edit_text` で `sanity_client.patch` 呼び出し)
 
 ### Firestore
 * コレクション: `article_drafts`
