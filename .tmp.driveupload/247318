@@ -1,0 +1,13 @@
+import { RuntimeCommand } from '../../baseCommands.js';
+export default class DoctorCommand extends RuntimeCommand<typeof DoctorCommand> {
+    static summary: string;
+    static description: string;
+    static examples: never[];
+    static flags: {
+        path: import("@oclif/core/interfaces").OptionFlag<string | undefined, import("@oclif/core/interfaces").CustomOptions>;
+        fix: import("@oclif/core/interfaces").BooleanFlag<boolean>;
+        json: import("@oclif/core/interfaces").BooleanFlag<boolean>;
+        verbose: import("@oclif/core/interfaces").BooleanFlag<boolean>;
+    };
+    run(): Promise<Record<string, unknown> | undefined>;
+}

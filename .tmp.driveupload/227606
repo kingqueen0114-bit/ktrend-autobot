@@ -1,0 +1,201 @@
+module.exports=[8922,t=>{"use strict";let e,i;var r,a,o,n=t.i(47909),s=t.i(74017),l=t.i(96250),d=t.i(59756),u=t.i(61916),p=t.i(74677),c=t.i(69741),h=t.i(16795),g=t.i(87718),f=t.i(95169),m=t.i(47587),y=t.i(66012),w=t.i(70101),A=t.i(26937),b=t.i(10372),_=t.i(93695);t.i(52474);var x=t.i(220),$=t.i(89171),R=t.i(61886);let v="image-Tb9Ew8CXIwaY6R1kjMvI0uRR-2000x3000-jpg";function O(t){return`image-${t.split("/").slice(-1)[0]}`.replace(/\.([a-z]+)$/,"-$1")}let E=[["width","w"],["height","h"],["format","fm"],["download","dl"],["blur","blur"],["sharpen","sharp"],["invert","invert"],["orientation","or"],["minHeight","min-h"],["maxHeight","max-h"],["minWidth","min-w"],["maxWidth","max-w"],["quality","q"],["fit","fit"],["crop","crop"],["saturation","sat"],["auto","auto"],["dpr","dpr"],["pad","pad"],["frame","frame"]],C=["clip","crop","fill","fillmax","max","scale","min"],I=["top","bottom","left","right","center","focalpoint","entropy"],P=["format"];function T(t){let{apiHost:e,projectId:i,dataset:r}=t,a={baseUrl:(e||"https://api.sanity.io").replace(/^https:\/\/api\./,"https://cdn.")},o=t["~experimental_resource"];if(o?.type==="media-library"){if("string"!=typeof o.id||0===o.id.length)throw Error('Media library clients must include an id in "~experimental_resource"');return{...a,mediaLibraryId:o.id}}return{...a,projectId:i,dataset:r}}function M(t){return t&&"config"in t&&"function"==typeof t.config?T(t.config()):t&&"clientConfig"in t&&"object"==typeof t.clientConfig?T(t.clientConfig):t||{}}class S{options;constructor(t,e){this.options=t?{...t.options||{},...e||{}}:{...e||{}}}withOptions(t){return new S(this,function(t,e){let i=e.baseUrl||t.baseUrl,r={baseUrl:i};for(let t in e)e.hasOwnProperty(t)&&(r[function(t){for(let e of E){let[i,r]=e;if(t===i||t===r)return i}return t}(t)]=e[t]);return{baseUrl:i,...r}}(this.options,t))}image(t){return this.withOptions({source:t})}dataset(t){return this.withOptions({dataset:t})}projectId(t){return this.withOptions({projectId:t})}withClient(t){let e=M(t),i={...this.options};return delete i.baseUrl,delete i.projectId,delete i.dataset,delete i.mediaLibraryId,new S(null,{...e,...i})}bg(t){return this.withOptions({bg:t})}dpr(t){return this.withOptions(t&&1!==t?{dpr:t}:{})}width(t){return this.withOptions({width:t})}height(t){return this.withOptions({height:t})}focalPoint(t,e){return this.withOptions({focalPoint:{x:t,y:e}})}maxWidth(t){return this.withOptions({maxWidth:t})}minWidth(t){return this.withOptions({minWidth:t})}maxHeight(t){return this.withOptions({maxHeight:t})}minHeight(t){return this.withOptions({minHeight:t})}size(t,e){return this.withOptions({width:t,height:e})}blur(t){return this.withOptions({blur:t})}sharpen(t){return this.withOptions({sharpen:t})}rect(t,e,i,r){return this.withOptions({rect:{left:t,top:e,width:i,height:r}})}format(t){return this.withOptions({format:t})}invert(t){return this.withOptions({invert:t})}orientation(t){return this.withOptions({orientation:t})}quality(t){return this.withOptions({quality:t})}forceDownload(t){return this.withOptions({download:t})}flipHorizontal(){return this.withOptions({flipHorizontal:!0})}flipVertical(){return this.withOptions({flipVertical:!0})}ignoreImageParams(){return this.withOptions({ignoreImageParams:!0})}fit(t){if(-1===C.indexOf(t))throw Error(`Invalid fit mode "${t}"`);return this.withOptions({fit:t})}crop(t){if(-1===I.indexOf(t))throw Error(`Invalid crop mode "${t}"`);return this.withOptions({crop:t})}saturation(t){return this.withOptions({saturation:t})}auto(t){if(-1===P.indexOf(t))throw Error(`Invalid auto mode "${t}"`);return this.withOptions({auto:t})}pad(t){return this.withOptions({pad:t})}vanityName(t){return this.withOptions({vanityName:t})}frame(t){if(1!==t)throw Error(`Invalid frame value "${t}"`);return this.withOptions({frame:t})}url(){return function(t){let e={...t||{}},i=e.source;delete e.source;let r=function(t){var e;let i;if(!t)return null;if("string"==typeof t&&(e=t,/^https?:\/\//.test(`${e}`)))i={asset:{_ref:O(t)}};else if("string"==typeof t)i={asset:{_ref:t}};else if(t&&"string"==typeof t._ref)i={asset:t};else if(t&&"string"==typeof t._id)i={asset:{_ref:t._id||""}};else if(t&&t.asset&&"string"==typeof t.asset.url)i={asset:{_ref:O(t.asset.url)}};else{if("object"!=typeof t.asset)return null;i={...t}}return t.crop&&(i.crop=t.crop),t.hotspot&&(i.hotspot=t.hotspot),function(t){if(t.crop&&t.hotspot)return t;let e={...t};return e.crop||(e.crop={left:0,top:0,bottom:0,right:0}),e.hotspot||(e.hotspot={x:.5,y:.5,height:1,width:1}),e}(i)}(i);if(!r){if(i&&"object"==typeof i&&null!==i&&i._upload&&(!i.asset||!i.asset._ref))return"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8HwQACfsD/QNViZkAAAAASUVORK5CYII=";throw Error(`Unable to resolve image URL from source (${JSON.stringify(i)})`)}let a=function(t){let[,e,i,r]=t.split("-");if(!e||!i||!r)throw Error(`Malformed asset _ref '${t}'. Expected an id like "${v}".`);let[a,o]=i.split("x"),n=+a,s=+o;if(!(isFinite(n)&&isFinite(s)))throw Error(`Malformed asset _ref '${t}'. Expected an id like "${v}".`);return{id:e,width:n,height:s,format:r}}(r.asset._ref||r.asset._id||""),o=Math.round(r.crop.left*a.width),n=Math.round(r.crop.top*a.height),s={left:o,top:n,width:Math.round(a.width-r.crop.right*a.width-o),height:Math.round(a.height-r.crop.bottom*a.height-n)},l=r.hotspot.height*a.height/2,d=r.hotspot.width*a.width/2,u=r.hotspot.x*a.width,p=r.hotspot.y*a.height;return e.rect||e.focalPoint||e.ignoreImageParams||e.crop||(e={...e,...function(t,e){let i,r=e.width,a=e.height;if(!(r&&a))return{width:r,height:a,rect:t.crop};let o=t.crop,n=t.hotspot,s=r/a;if(o.width/o.height>s){let t=Math.round(o.height),e=Math.round(t*s),r=Math.max(0,Math.round(o.top)),a=Math.max(0,Math.round(Math.round((n.right-n.left)/2+n.left)-e/2));a<o.left?a=o.left:a+e>o.left+o.width&&(a=o.left+o.width-e),i={left:a,top:r,width:e,height:t}}else{let t=o.width,e=Math.round(t/s),r=Math.max(0,Math.round(o.left)),a=Math.max(0,Math.round(Math.round((n.bottom-n.top)/2+n.top)-e/2));a<o.top?a=o.top:a+e>o.top+o.height&&(a=o.top+o.height-e),i={left:r,top:a,width:t,height:e}}return{width:r,height:a,rect:i}}({crop:s,hotspot:{left:u-d,top:p-l,right:u+d,bottom:p+l}},e)}),function(t){let e=(t.baseUrl||"https://cdn.sanity.io").replace(/\/+$/,""),i=t.vanityName?`/${t.vanityName}`:"",r=`${t.asset.id}-${t.asset.width}x${t.asset.height}.${t.asset.format}${i}`,a=t.mediaLibraryId?`${e}/media-libraries/${t.mediaLibraryId}/images/${r}`:`${e}/images/${t.projectId}/${t.dataset}/${r}`,o=[];if(t.rect){let{left:e,top:i,width:r,height:a}=t.rect;(0!==e||0!==i||a!==t.asset.height||r!==t.asset.width)&&o.push(`rect=${e},${i},${r},${a}`)}t.bg&&o.push(`bg=${t.bg}`),t.focalPoint&&(o.push(`fp-x=${t.focalPoint.x}`),o.push(`fp-y=${t.focalPoint.y}`));let n=[t.flipHorizontal&&"h",t.flipVertical&&"v"].filter(Boolean).join("");return n&&o.push(`flip=${n}`),E.forEach(e=>{let[i,r]=e;"u">typeof t[i]?o.push(`${r}=${encodeURIComponent(t[i])}`):"u">typeof t[r]&&o.push(`${r}=${encodeURIComponent(t[r])}`)}),0===o.length?a:`${a}?${o.join("&")}`}({...e,asset:a})}(this.options)}toString(){return this.url()}}let U=(r=["The default export of @sanity/image-url has been deprecated. Use the named export `createImageUrlBuilder` instead."],a=(...t)=>{console.warn(r.join(" "),...t)},e=!1,(...t)=>(e||(i=a(...t),e=!0),i)),q=(o=function(t){return new S(null,M(t))},function(t){return U(),o(t)}),N=(0,R.createClient)({projectId:"3pe6cvt2",dataset:"production",apiVersion:"2024-01-01",useCdn:!0});function H(t,...e){let i=t.length-1;return t.slice(0,i).reduce((t,i,r)=>t+i+e[r],"")+t[i]}q(N),H`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags,
+    qualityScore
+  }
+`,H`
+  *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,H`
+  *[_type == "article" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    body,
+    excerpt,
+    mainImage,
+    imageCredit,
+    seo,
+    "category": category->{title, slug, color},
+    "tags": tags[]->{title, slug},
+    artistTags,
+    highlights,
+    qualityScore,
+    sourceUrl,
+    xPost1,
+    xPost2,
+    newsPost,
+    lunaPostA,
+    lunaPostB,
+    researchReport
+  }
+`,H`
+  *[_type == "article" && _id == $id][0] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    body,
+    excerpt,
+    mainImage,
+    imageCredit,
+    seo,
+    "category": category->{_id, title, slug, color},
+    "tags": tags[]->{_id, title, slug},
+    artistTags,
+    highlights,
+    qualityScore,
+    sourceUrl,
+    xPost1,
+    xPost2,
+    newsPost,
+    lunaPostA,
+    lunaPostB,
+    researchReport
+  }
+`,H`
+  *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug && _id != $currentId] | order(publishedAt desc) [0...4] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    mainImage,
+    "category": category->{title, slug, color}
+  }
+`;let j=H`
+  *[_type == "category"] | order(title asc) {
+    _id,
+    title,
+    slug,
+    color,
+    description
+  }
+`;H`
+  *[_type == "category"] | order(title asc) {
+    _id,
+    title,
+    slug,
+    color,
+    description,
+    "articleCount": count(*[_type == "article" && references(^._id) && defined(publishedAt)])
+  }
+`;let k=H`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) {
+    slug,
+    publishedAt,
+    _updatedAt
+  }
+`;H`{
+  "prev": *[_type == "article" && defined(publishedAt) && publishedAt < $publishedAt] | order(publishedAt desc) [0] {
+    _id, title, slug, mainImage
+  },
+  "next": *[_type == "article" && defined(publishedAt) && publishedAt > $publishedAt] | order(publishedAt asc) [0] {
+    _id, title, slug, mainImage
+  }
+}`,H`
+  *[_type == "article" && _id in path("drafts.**")] | order(_updatedAt desc) {
+    _id,
+    title,
+    slug,
+    _updatedAt,
+    mainImage,
+    "category": category->{title, slug, color},
+    qualityScore
+  }
+`,H`
+  *[_type == "article" && defined(publishedAt) && _id != $currentId] | order(publishedAt desc) [0...8] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color}
+  }
+`,H`
+  *[_type == "article" && defined(publishedAt) && (
+    title match $q + "*" ||
+    excerpt match $q + "*" ||
+    pt::text(body) match $q + "*"
+  )] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,H`
+  count(*[_type == "article" && defined(publishedAt) && (
+    title match $q + "*" ||
+    excerpt match $q + "*" ||
+    pt::text(body) match $q + "*"
+  )])
+`,H`
+  *[_type == "article" && defined(publishedAt) && references(*[_type == "tag" && slug.current == $tagSlug]._id)] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,H`
+  *[_type == "tag" && slug.current == $tagSlug][0] {
+    _id,
+    title,
+    slug
+  }
+`,H`
+  count(*[_type == "article" && defined(publishedAt) && references(*[_type == "tag" && slug.current == $tagSlug]._id)])
+`,H`
+  count(*[_type == "article" && defined(publishedAt)])
+`,H`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) [$start...$end] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,H`
+  *[_type == "article" && defined(publishedAt) && $artistTag in artistTags] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,H`
+  count(*[_type == "article" && defined(publishedAt) && $artistTag in artistTags])
+`,H`
+  array::unique(*[_type == "article" && defined(publishedAt) && defined(artistTags)].artistTags[])
+`;let D="https://k-trendtimes.com";async function F(){let[t,e]=await Promise.all([N.fetch(k),N.fetch(j)]),i=t.map(t=>({url:`${D}/articles/${t.slug.current}`,lastModified:t._updatedAt||t.publishedAt,changeFrequency:"weekly",priority:.8})),r=e.map(t=>({url:`${D}/category/${t.slug.current}`,changeFrequency:"daily",priority:.6}));return[{url:D,changeFrequency:"daily",priority:1},...r,...i]}t.s(["default",()=>F],89282);var B=t.i(73853);async function V(){let t=await F(),e=(0,B.resolveRouteData)(t,"sitemap");return new $.NextResponse(e,{headers:{"Content-Type":"application/xml","Cache-Control":"public, max-age=0, must-revalidate"}})}t.s(["GET",()=>V],39248),t.i(39248),t.i(89282),t.s(["GET",()=>V],21330);var K=t.i(21330);let L=new n.AppRouteRouteModule({definition:{kind:s.RouteKind.APP_ROUTE,page:"/sitemap.xml/route",pathname:"/sitemap.xml",filename:"sitemap--route-entry",bundlePath:""},distDir:".next",relativeProjectDir:"",resolvedPagePath:"[project]/app/sitemap--route-entry.js",nextConfigOutput:"",userland:K}),{workAsyncStorage:z,workUnitAsyncStorage:G,serverHooks:W}=L;function Q(){return(0,l.patchFetch)({workAsyncStorage:z,workUnitAsyncStorage:G})}async function X(t,e,i){L.isDev&&(0,d.addRequestMeta)(t,"devRequestTimingInternalsEnd",process.hrtime.bigint());let r="/sitemap.xml/route";r=r.replace(/\/index$/,"")||"/";let a=await L.prepare(t,e,{srcPage:r,multiZoneDraftMode:!1});if(!a)return e.statusCode=400,e.end("Bad Request"),null==i.waitUntil||i.waitUntil.call(i,Promise.resolve()),null;let{buildId:o,params:n,nextConfig:l,parsedUrl:$,isDraftMode:R,prerenderManifest:v,routerServerContext:O,isOnDemandRevalidate:E,revalidateOnlyGenerated:C,resolvedPathname:I,clientReferenceManifest:P,serverActionsManifest:T}=a,M=(0,c.normalizeAppPath)(r),S=!!(v.dynamicRoutes[M]||v.routes[I]),U=async()=>((null==O?void 0:O.render404)?await O.render404(t,e,$,!1):e.end("This page could not be found"),null);if(S&&!R){let t=!!v.routes[I],e=v.dynamicRoutes[M];if(e&&!1===e.fallback&&!t){if(l.experimental.adapterPath)return await U();throw new _.NoFallbackError}}let q=null;!S||L.isDev||R||(q="/index"===(q=I)?"/":q);let N=!0===L.isDev||!S,H=S&&!N;T&&P&&(0,p.setManifestsSingleton)({page:r,clientReferenceManifest:P,serverActionsManifest:T});let j=t.method||"GET",k=(0,u.getTracer)(),D=k.getActiveScopeSpan(),F={params:n,prerenderManifest:v,renderOpts:{experimental:{authInterrupts:!!l.experimental.authInterrupts},cacheComponents:!!l.cacheComponents,supportsDynamicResponse:N,incrementalCache:(0,d.getRequestMeta)(t,"incrementalCache"),cacheLifeProfiles:l.cacheLife,waitUntil:i.waitUntil,onClose:t=>{e.on("close",t)},onAfterTaskError:void 0,onInstrumentationRequestError:(e,i,r,a)=>L.onRequestError(t,e,r,a,O)},sharedContext:{buildId:o}},B=new h.NodeNextRequest(t),V=new h.NodeNextResponse(e),K=g.NextRequestAdapter.fromNodeNextRequest(B,(0,g.signalFromNodeResponse)(e));try{let a=async t=>L.handle(K,F).finally(()=>{if(!t)return;t.setAttributes({"http.status_code":e.statusCode,"next.rsc":!1});let i=k.getRootSpanAttributes();if(!i)return;if(i.get("next.span_type")!==f.BaseServerSpan.handleRequest)return void console.warn(`Unexpected root span type '${i.get("next.span_type")}'. Please report this Next.js issue https://github.com/vercel/next.js`);let a=i.get("next.route");if(a){let e=`${j} ${a}`;t.setAttributes({"next.route":a,"http.route":a,"next.span_name":e}),t.updateName(e)}else t.updateName(`${j} ${r}`)}),o=!!(0,d.getRequestMeta)(t,"minimalMode"),n=async n=>{var d,u;let p=async({previousCacheEntry:s})=>{try{if(!o&&E&&C&&!s)return e.statusCode=404,e.setHeader("x-nextjs-cache","REVALIDATED"),e.end("This page could not be found"),null;let r=await a(n);t.fetchMetrics=F.renderOpts.fetchMetrics;let l=F.renderOpts.pendingWaitUntil;l&&i.waitUntil&&(i.waitUntil(l),l=void 0);let d=F.renderOpts.collectedTags;if(!S)return await (0,y.sendResponse)(B,V,r,F.renderOpts.pendingWaitUntil),null;{let t=await r.blob(),e=(0,w.toNodeOutgoingHttpHeaders)(r.headers);d&&(e[b.NEXT_CACHE_TAGS_HEADER]=d),!e["content-type"]&&t.type&&(e["content-type"]=t.type);let i=void 0!==F.renderOpts.collectedRevalidate&&!(F.renderOpts.collectedRevalidate>=b.INFINITE_CACHE)&&F.renderOpts.collectedRevalidate,a=void 0===F.renderOpts.collectedExpire||F.renderOpts.collectedExpire>=b.INFINITE_CACHE?void 0:F.renderOpts.collectedExpire;return{value:{kind:x.CachedRouteKind.APP_ROUTE,status:r.status,body:Buffer.from(await t.arrayBuffer()),headers:e},cacheControl:{revalidate:i,expire:a}}}}catch(e){throw(null==s?void 0:s.isStale)&&await L.onRequestError(t,e,{routerKind:"App Router",routePath:r,routeType:"route",revalidateReason:(0,m.getRevalidateReason)({isStaticGeneration:H,isOnDemandRevalidate:E})},!1,O),e}},c=await L.handleResponse({req:t,nextConfig:l,cacheKey:q,routeKind:s.RouteKind.APP_ROUTE,isFallback:!1,prerenderManifest:v,isRoutePPREnabled:!1,isOnDemandRevalidate:E,revalidateOnlyGenerated:C,responseGenerator:p,waitUntil:i.waitUntil,isMinimalMode:o});if(!S)return null;if((null==c||null==(d=c.value)?void 0:d.kind)!==x.CachedRouteKind.APP_ROUTE)throw Object.defineProperty(Error(`Invariant: app-route received invalid cache entry ${null==c||null==(u=c.value)?void 0:u.kind}`),"__NEXT_ERROR_CODE",{value:"E701",enumerable:!1,configurable:!0});o||e.setHeader("x-nextjs-cache",E?"REVALIDATED":c.isMiss?"MISS":c.isStale?"STALE":"HIT"),R&&e.setHeader("Cache-Control","private, no-cache, no-store, max-age=0, must-revalidate");let h=(0,w.fromNodeOutgoingHttpHeaders)(c.value.headers);return o&&S||h.delete(b.NEXT_CACHE_TAGS_HEADER),!c.cacheControl||e.getHeader("Cache-Control")||h.get("Cache-Control")||h.set("Cache-Control",(0,A.getCacheControlHeader)(c.cacheControl)),await (0,y.sendResponse)(B,V,new Response(c.value.body,{headers:h,status:c.value.status||200})),null};D?await n(D):await k.withPropagatedContext(t.headers,()=>k.trace(f.BaseServerSpan.handleRequest,{spanName:`${j} ${r}`,kind:u.SpanKind.SERVER,attributes:{"http.method":j,"http.target":t.url}},n))}catch(e){if(e instanceof _.NoFallbackError||await L.onRequestError(t,e,{routerKind:"App Router",routePath:M,routeType:"route",revalidateReason:(0,m.getRevalidateReason)({isStaticGeneration:H,isOnDemandRevalidate:E})},!1,O),S)throw e;return await (0,y.sendResponse)(B,V,new Response(null,{status:500})),null}}t.s(["handler",()=>X,"patchFetch",()=>Q,"routeModule",()=>L,"serverHooks",()=>W,"workAsyncStorage",()=>z,"workUnitAsyncStorage",()=>G],8922)}];
+
+//# sourceMappingURL=node_modules_next_dist_esm_build_templates_app-route_b6bd895e.js.map

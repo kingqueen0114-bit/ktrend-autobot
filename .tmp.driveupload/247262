@@ -1,0 +1,20 @@
+export { run } from '@oclif/core';
+// Blueprints command classes
+export { default as BlueprintsAddCommand } from './commands/blueprints/add.js';
+export { default as BlueprintsConfigCommand } from './commands/blueprints/config.js';
+export { default as BlueprintsDeployCommand } from './commands/blueprints/deploy.js';
+export { default as BlueprintsDestroyCommand } from './commands/blueprints/destroy.js';
+export { default as BlueprintsDoctorCommand } from './commands/blueprints/doctor.js';
+export { default as BlueprintsInfoCommand } from './commands/blueprints/info.js';
+export { default as BlueprintsInitCommand } from './commands/blueprints/init.js';
+export { default as BlueprintsLogsCommand } from './commands/blueprints/logs.js';
+export { default as BlueprintsPlanCommand } from './commands/blueprints/plan.js';
+export { default as BlueprintsStacksCommand } from './commands/blueprints/stacks.js';
+// Functions command classes
+export { default as FunctionsAddCommand } from './commands/functions/add.js';
+export { default as FunctionsDevCommand } from './commands/functions/dev.js';
+export { default as FunctionsEnvAddCommand } from './commands/functions/env/add.js';
+export { default as FunctionsEnvListCommand } from './commands/functions/env/list.js';
+export { default as FunctionsEnvRemoveCommand } from './commands/functions/env/remove.js';
+export { default as FunctionsLogsCommand } from './commands/functions/logs.js';
+export { default as FunctionsTestCommand } from './commands/functions/test.js';

@@ -1,0 +1,201 @@
+module.exports=[93695,(a,b,c)=>{b.exports=a.x("next/dist/shared/lib/no-fallback-error.external.js",()=>require("next/dist/shared/lib/no-fallback-error.external.js"))},70864,a=>{a.n(a.i(33290))},43619,a=>{a.n(a.i(79962))},13718,a=>{a.n(a.i(85523))},18198,a=>{a.n(a.i(45518))},62212,a=>{a.n(a.i(66114))},54799,(a,b,c)=>{b.exports=a.x("crypto",()=>require("crypto"))},71029,(a,b,c)=>{"use strict";c._=function(a){return a&&a.__esModule?a:{default:a}}},87127,a=>{"use strict";function b(a){return"object"==typeof a&&null!==a&&!Array.isArray(a)}var c={0:8203,1:8204,2:8205,3:8290,4:8291,5:8288,6:65279,7:8289,8:119155,9:119156,a:119157,b:119158,c:119159,d:119160,e:119161,f:119162},d={0:8203,1:8204,2:8205,3:65279};[,,,,].fill(String.fromCodePoint(d[0])).join(""),Object.fromEntries(Object.entries(d).map(a=>a.reverse())),Object.fromEntries(Object.entries(c).map(a=>a.reverse()));var e=`${Object.values(c).map(a=>`\\u{${a.toString(16)}}`).join("")}`,f=RegExp(`[${e}]{4,}`,"gu");function g(a){var b,c;return a&&JSON.parse({cleaned:(b=JSON.stringify(a)).replace(f,""),encoded:(null==(c=b.match(f))?void 0:c[0])||""}.cleaned)}a.s(["isRecord",()=>b,"stegaClean",()=>g])},80894,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/components/CategoryBadge.tsx <module evaluation> from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/components/CategoryBadge.tsx <module evaluation>","default")},2691,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/components/CategoryBadge.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/components/CategoryBadge.tsx","default")},6372,a=>{"use strict";a.i(80894);var b=a.i(2691);a.n(b)},90919,39355,78562,a=>{"use strict";function b(a,...c){let d=a.length-1;return a.slice(0,d).reduce((a,b,d)=>a+b+c[d],"")+a[d]}let c=b`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags,
+    qualityScore
+  }
+`,d=b`
+  *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,e=b`
+  *[_type == "article" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    body,
+    excerpt,
+    mainImage,
+    imageCredit,
+    seo,
+    "category": category->{title, slug, color},
+    "tags": tags[]->{title, slug},
+    artistTags,
+    highlights,
+    qualityScore,
+    sourceUrl,
+    xPost1,
+    xPost2,
+    newsPost,
+    lunaPostA,
+    lunaPostB,
+    researchReport
+  }
+`;b`
+  *[_type == "article" && _id == $id][0] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    body,
+    excerpt,
+    mainImage,
+    imageCredit,
+    seo,
+    "category": category->{_id, title, slug, color},
+    "tags": tags[]->{_id, title, slug},
+    artistTags,
+    highlights,
+    qualityScore,
+    sourceUrl,
+    xPost1,
+    xPost2,
+    newsPost,
+    lunaPostA,
+    lunaPostB,
+    researchReport
+  }
+`;let f=b`
+  *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug && _id != $currentId] | order(publishedAt desc) [0...4] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    mainImage,
+    "category": category->{title, slug, color}
+  }
+`,g=b`
+  *[_type == "category"] | order(title asc) {
+    _id,
+    title,
+    slug,
+    color,
+    description
+  }
+`;b`
+  *[_type == "category"] | order(title asc) {
+    _id,
+    title,
+    slug,
+    color,
+    description,
+    "articleCount": count(*[_type == "article" && references(^._id) && defined(publishedAt)])
+  }
+`,b`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) {
+    slug,
+    publishedAt,
+    _updatedAt
+  }
+`;let h=b`{
+  "prev": *[_type == "article" && defined(publishedAt) && publishedAt < $publishedAt] | order(publishedAt desc) [0] {
+    _id, title, slug, mainImage
+  },
+  "next": *[_type == "article" && defined(publishedAt) && publishedAt > $publishedAt] | order(publishedAt asc) [0] {
+    _id, title, slug, mainImage
+  }
+}`;b`
+  *[_type == "article" && _id in path("drafts.**")] | order(_updatedAt desc) {
+    _id,
+    title,
+    slug,
+    _updatedAt,
+    mainImage,
+    "category": category->{title, slug, color},
+    qualityScore
+  }
+`;let i=b`
+  *[_type == "article" && defined(publishedAt) && _id != $currentId] | order(publishedAt desc) [0...8] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color}
+  }
+`,j=b`
+  *[_type == "article" && defined(publishedAt) && (
+    title match $q + "*" ||
+    excerpt match $q + "*" ||
+    pt::text(body) match $q + "*"
+  )] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,k=b`
+  count(*[_type == "article" && defined(publishedAt) && (
+    title match $q + "*" ||
+    excerpt match $q + "*" ||
+    pt::text(body) match $q + "*"
+  )])
+`,l=b`
+  *[_type == "article" && defined(publishedAt) && references(*[_type == "tag" && slug.current == $tagSlug]._id)] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,m=b`
+  *[_type == "tag" && slug.current == $tagSlug][0] {
+    _id,
+    title,
+    slug
+  }
+`,n=b`
+  count(*[_type == "article" && defined(publishedAt) && references(*[_type == "tag" && slug.current == $tagSlug]._id)])
+`,o=b`
+  count(*[_type == "article" && defined(publishedAt)])
+`,p=b`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) [$start...$end] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,q=b`
+  *[_type == "article" && defined(publishedAt) && $artistTag in artistTags] | order(publishedAt desc) [0...$limit] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`,r=b`
+  count(*[_type == "article" && defined(publishedAt) && $artistTag in artistTags])
+`,s=b`
+  array::unique(*[_type == "article" && defined(publishedAt) && defined(artistTags)].artistTags[])
+`;a.s(["adjacentArticlesQuery",0,h,"allArtistTagsQuery",0,s,"articleBySlugQuery",0,e,"articlesByArtistTagQuery",0,q,"articlesByCategoryQuery",0,d,"articlesByTagQuery",0,l,"articlesCountQuery",0,o,"articlesPaginatedQuery",0,p,"articlesQuery",0,c,"artistTagArticlesCountQuery",0,r,"categoriesQuery",0,g,"recommendedArticlesQuery",0,i,"relatedArticlesQuery",0,f,"searchCountQuery",0,k,"searchQuery",0,j,"tagArticlesCountQuery",0,n,"tagBySlugQuery",0,m],90919);var t=a.i(7997),u=a.i(95936),v=a.i(8517),w=a.i(3236),x=a.i(6372);function y({article:a,variant:b="default",rank:c}){let d=a.mainImage?(0,v.urlFor)(a.mainImage).width("sidebar"===b?120:640).height("sidebar"===b?80:360).url():null,e=a.publishedAt?new Date(a.publishedAt).toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric"}):"";if("sidebar"===b)return(0,t.jsxs)(u.default,{href:`/articles/${a.slug.current}`,className:"flex gap-3 group",children:[c&&(0,t.jsx)("span",{className:`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${1===c?"bg-[#FFD700]":2===c?"bg-[#C0C0C0]":3===c?"bg-[#CD7F32]":"bg-gray-400"}`,children:c}),(0,t.jsx)("div",{className:"relative w-[100px] h-[66px] flex-shrink-0 overflow-hidden rounded",children:d?(0,t.jsx)(w.default,{src:d,alt:a.title,fill:!0,className:"object-cover group-hover:scale-105 transition-transform",sizes:"100px"}):(0,t.jsx)("div",{className:"absolute inset-0 bg-gray-200 flex items-center justify-center",children:(0,t.jsx)("svg",{className:"w-6 h-6 text-gray-400",fill:"none",stroke:"currentColor",viewBox:"0 0 24 24",children:(0,t.jsx)("path",{strokeLinecap:"round",strokeLinejoin:"round",strokeWidth:1.5,d:"M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"})})})}),(0,t.jsxs)("div",{className:"flex-1 min-w-0",children:[(0,t.jsx)("h4",{className:"text-sm font-medium text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors",children:a.title}),(0,t.jsx)("time",{className:"text-xs text-[#67737e] mt-1 block",children:e})]})]});return"featured"===b?(0,t.jsxs)(u.default,{href:`/articles/${a.slug.current}`,className:"block group",children:[(0,t.jsxs)("div",{className:"relative aspect-video overflow-hidden rounded-lg",children:[d?(0,t.jsx)(w.default,{src:d,alt:a.title,fill:!0,className:"object-cover group-hover:scale-105 transition-transform duration-300",sizes:"(max-width: 768px) 100vw, 70vw",priority:!0}):(0,t.jsx)("div",{className:"absolute inset-0 bg-gray-200 flex items-center justify-center",children:(0,t.jsx)("svg",{className:"w-12 h-12 text-gray-400",fill:"none",stroke:"currentColor",viewBox:"0 0 24 24",children:(0,t.jsx)("path",{strokeLinecap:"round",strokeLinejoin:"round",strokeWidth:1.5,d:"M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"})})}),a.category&&(0,t.jsx)("div",{className:"absolute top-3 left-3",children:(0,t.jsx)(x.default,{category:a.category,asLink:!1})})]}),(0,t.jsx)("h2",{className:"mt-3 text-xl md:text-2xl font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors",children:a.title}),a.excerpt&&(0,t.jsx)("p",{className:"mt-2 text-sm text-[#67737e] line-clamp-2",children:a.excerpt}),(0,t.jsx)("time",{className:"text-xs text-[#67737e] mt-2 block",children:e})]}):(0,t.jsxs)(u.default,{href:`/articles/${a.slug.current}`,className:"block group",children:[(0,t.jsxs)("div",{className:"relative aspect-video overflow-hidden rounded",children:[d?(0,t.jsx)(w.default,{src:d,alt:a.title,fill:!0,className:"object-cover group-hover:scale-105 transition-transform duration-300",sizes:"(max-width: 768px) 100vw, 33vw"}):(0,t.jsx)("div",{className:"absolute inset-0 bg-gray-200 flex items-center justify-center",children:(0,t.jsx)("svg",{className:"w-10 h-10 text-gray-400",fill:"none",stroke:"currentColor",viewBox:"0 0 24 24",children:(0,t.jsx)("path",{strokeLinecap:"round",strokeLinejoin:"round",strokeWidth:1.5,d:"M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"})})}),a.category&&(0,t.jsx)("div",{className:"absolute top-2 left-2",children:(0,t.jsx)(x.default,{category:a.category,asLink:!1})})]}),(0,t.jsx)("h3",{className:"mt-2 text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors",children:a.title}),a.excerpt&&(0,t.jsx)("p",{className:"mt-1 text-sm text-[#67737e] line-clamp-2",children:a.excerpt}),a.artistTags&&a.artistTags.length>0&&(0,t.jsx)("div",{className:"flex gap-1 flex-wrap mt-1.5",children:a.artistTags.slice(0,3).map(a=>(0,t.jsx)("span",{className:"border border-[#f84643]/50 text-[#f84643] text-[10px] px-2 py-0.5 rounded-full",children:a},a))}),(0,t.jsx)("span",{className:"text-[#f84643] text-xs font-medium mt-1 inline-block",children:"続きを読む »"}),(0,t.jsx)("time",{className:"text-xs text-[#67737e] mt-1 block",children:e})]})}function z({slot:a,format:b="auto",style:c}){return(0,t.jsx)("div",{className:"ad-container my-6",style:{minHeight:250,...c},children:(0,t.jsx)("ins",{className:"adsbygoogle",style:{display:"block"},"data-ad-client":process.env.NEXT_PUBLIC_ADSENSE_ID||"","data-ad-slot":a,"data-ad-format":b,"data-full-width-responsive":"true"})})}async function A(){let[a,b]=await Promise.all([v.client.fetch(c,{limit:5}),v.client.fetch(s)]);return(0,t.jsxs)("aside",{className:"space-y-8",children:[(0,t.jsxs)("div",{children:[(0,t.jsx)("h3",{className:"text-base font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#f84643]",children:"人気の記事"}),(0,t.jsx)("div",{className:"space-y-4",children:a.map((a,b)=>(0,t.jsx)(y,{article:a,variant:"sidebar",rank:b+1},a._id))})]}),b&&b.length>0&&(0,t.jsxs)("div",{className:"bg-white rounded-lg shadow-sm p-5",children:[(0,t.jsx)("h3",{className:"text-lg font-bold text-[#292929] mb-1",children:"アーティストタグ"}),(0,t.jsx)("div",{className:"w-full h-0.5 bg-[#f84643] mb-4"}),(0,t.jsx)("div",{className:"flex flex-wrap gap-2",children:b.map(a=>(0,t.jsxs)(u.default,{href:`/artist/${encodeURIComponent(a)}`,className:"inline-flex items-center gap-1.5 border border-[#f84643] text-[#f84643] text-sm font-medium px-3 py-1.5 rounded-full hover:bg-[#f84643] hover:text-white transition-colors",children:[(0,t.jsxs)("svg",{width:"12",height:"12",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:"shrink-0",children:[(0,t.jsx)("path",{d:"M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"}),(0,t.jsx)("line",{x1:"7",y1:"7",x2:"7.01",y2:"7"})]}),a]},a))})]}),(0,t.jsx)(z,{slot:"sidebar",style:{minHeight:600}})]})}a.s(["default",()=>y],39355),a.s(["default",()=>A],78562)},6417,a=>{"use strict";var b=a.i(7997);function c({data:a}){return(0,b.jsx)("script",{type:"application/ld+json",dangerouslySetInnerHTML:{__html:JSON.stringify(a).replace(/</g,"\\u003c")}})}a.s(["default",()=>c])},50708,a=>{"use strict";var b=a.i(7997),c=a.i(95936),d=a.i(3236),e=a.i(8517),f=a.i(90919),g=a.i(39355),h=a.i(78562),i=a.i(6417);let j="https://k-trendtimes.com",k={"@context":"https://schema.org","@type":"Organization",name:"K-TREND TIMES",url:j,logo:`${j}/og-default.png`},l={"@context":"https://schema.org","@type":"WebSite",name:"K-TREND TIMES",url:j,potentialAction:{"@type":"SearchAction",target:`${j}/search?q={search_term_string}`,"query-input":"required name=search_term_string"}};async function m(){let a=await e.client.fetch(f.articlesQuery,{limit:12}),j=a[0],m=a[1],n=a[2],o=a.slice(3);return(0,b.jsxs)(b.Fragment,{children:[(0,b.jsx)(i.default,{data:k}),(0,b.jsx)(i.default,{data:l}),(0,b.jsx)("div",{className:"max-w-6xl mx-auto px-4 py-8",children:(0,b.jsxs)("div",{className:"flex flex-col lg:flex-row gap-8",children:[(0,b.jsxs)("div",{className:"w-full lg:w-[70%]",children:[(0,b.jsxs)("div",{className:"flex flex-col lg:flex-row gap-6 mb-8",children:[j&&(0,b.jsxs)("div",{className:"w-full lg:w-[60%]",children:[(0,b.jsxs)(c.default,{href:`/articles/${j.slug.current}`,className:"block lg:hidden relative aspect-[4/3] overflow-hidden rounded-lg",children:[j.mainImage?(0,b.jsx)(d.default,{src:(0,e.urlFor)(j.mainImage).width(800).height(600).url(),alt:j.title,fill:!0,className:"object-cover",sizes:"100vw",priority:!0}):(0,b.jsx)("div",{className:"absolute inset-0 bg-gray-200"}),(0,b.jsx)("div",{className:"absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"}),j.category&&(0,b.jsx)("span",{className:"absolute top-3 left-3 text-xs text-white font-medium px-2 py-0.5 rounded",style:{backgroundColor:j.category.color},children:j.category.title}),(0,b.jsxs)("div",{className:"absolute bottom-0 left-0 right-0 p-4",children:[(0,b.jsx)("h2",{className:"text-white text-lg font-bold leading-tight line-clamp-3",children:j.title}),(0,b.jsx)("time",{className:"text-white/70 text-xs mt-1 block",children:j.publishedAt?new Date(j.publishedAt).toLocaleDateString("ja-JP",{month:"long",day:"numeric"}):""})]})]}),(0,b.jsx)("div",{className:"hidden lg:block",children:(0,b.jsx)(g.default,{article:j,variant:"featured"})})]}),(m||n)&&(0,b.jsxs)("div",{className:"w-full lg:w-[40%]",children:[(0,b.jsx)("div",{className:"lg:hidden space-y-3",children:[m,n].filter(Boolean).map(a=>(0,b.jsxs)(c.default,{href:`/articles/${a.slug.current}`,className:"flex gap-3 group",children:[(0,b.jsx)("div",{className:"relative w-[120px] h-[80px] shrink-0 overflow-hidden rounded",children:a.mainImage?(0,b.jsx)(d.default,{src:(0,e.urlFor)(a.mainImage).width(240).height(160).url(),alt:a.title,fill:!0,className:"object-cover group-hover:scale-105 transition-transform",sizes:"120px"}):(0,b.jsx)("div",{className:"absolute inset-0 bg-gray-200 rounded"})}),(0,b.jsxs)("div",{className:"flex-1 min-w-0",children:[(0,b.jsx)("h3",{className:"text-sm font-medium text-[#292929] line-clamp-2 group-hover:text-[#f84643] transition-colors",children:a.title}),(0,b.jsx)("time",{className:"text-xs text-[#67737e] mt-1 block",children:a.publishedAt?new Date(a.publishedAt).toLocaleDateString("ja-JP",{month:"long",day:"numeric"}):""})]})]},a._id))}),(0,b.jsxs)("div",{className:"hidden lg:flex flex-col gap-6",children:[m&&(0,b.jsx)(g.default,{article:m}),n&&(0,b.jsx)(g.default,{article:n})]})]})]}),(0,b.jsx)("h2",{className:"border-l-4 border-[#f84643] pl-3 text-lg font-bold text-[#292929] mb-6",children:"最新記事"}),(0,b.jsx)("div",{className:"grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6",children:o.map(a=>(0,b.jsx)(g.default,{article:a},a._id))}),(0,b.jsx)("div",{className:"flex justify-center mt-10",children:(0,b.jsx)(c.default,{href:"/articles",className:"border border-[#f84643] text-[#f84643] hover:bg-[#f84643] hover:text-white px-8 py-2.5 rounded transition-colors text-sm font-medium",children:"もっと読む"})})]}),(0,b.jsx)("div",{className:"w-full lg:w-[30%]",children:(0,b.jsx)(h.default,{})})]})})]})}a.s(["default",()=>m,"revalidate",0,60])},9489,a=>{a.v(b=>Promise.all(["server/chunks/ssr/node_modules_@sanity_client_dist__chunks-es_stegaEncodeSourceMap_e91a1003.js"].map(b=>a.l(b))).then(()=>b(14025)))},76016,a=>{a.v(b=>Promise.all(["server/chunks/ssr/[root-of-the-server]__48ac7fed._.js"].map(b=>a.l(b))).then(()=>b(12374)))}];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__981f69e5._.js.map

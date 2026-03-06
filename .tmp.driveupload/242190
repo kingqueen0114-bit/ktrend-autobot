@@ -1,0 +1,1 @@
+{"version":3,"file":"ensureApiVersionFormat.d.ts","sourceRoot":"","sources":["../../../src/utils/migration/ensureApiVersionFormat.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,KAAK,SAAS,EAAC,MAAM,gBAAgB,CAAA;AAE7C,KAAK,UAAU,GAAG,SAAS,CAAC,YAAY,CAAC,CAAA;AAIzC;;;;GAIG;AACH,wBAAgB,sBAAsB,CAAC,OAAO,EAAE,MAAM,GAAG,UAAU,CAWlE"}

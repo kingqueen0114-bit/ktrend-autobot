@@ -1,0 +1,1 @@
+{"version":3,"file":"list.d.ts","sourceRoot":"","sources":["../../../src/commands/migration/list.ts"],"names":[],"mappings":"AAEA,OAAO,EAAC,aAAa,EAAW,MAAM,kBAAkB,CAAA;AAOxD,qBAAa,oBAAqB,SAAQ,aAAa,CAAC,OAAO,oBAAoB,CAAC;IAClF,OAAgB,WAAW,SAA8B;IAEzD,OAAgB,QAAQ;;;QAKvB;IAEY,GAAG,IAAI,OAAO,CAAC,IAAI,CAAC;CA6ClC"}

@@ -1,0 +1,83 @@
+# K-TREND TIMES 環境変数設定
+# このファイルを .env にコピーして値を変更してください
+# cp .env.example .env
+
+# ============================================
+# データベース設定
+# ============================================
+DB_NAME=ktrend_db
+DB_USER=ktrend_user
+DB_PASSWORD=your_secure_password_here
+MYSQL_ROOT_PASSWORD=your_root_password_here
+TABLE_PREFIX=wp_
+
+# ============================================
+# WordPress セキュリティキー
+# https://api.wordpress.org/secret-key/1.1/salt/ で生成
+# ============================================
+AUTH_KEY=put-your-unique-phrase-here
+SECURE_AUTH_KEY=put-your-unique-phrase-here
+LOGGED_IN_KEY=put-your-unique-phrase-here
+NONCE_KEY=put-your-unique-phrase-here
+AUTH_SALT=put-your-unique-phrase-here
+SECURE_AUTH_SALT=put-your-unique-phrase-here
+LOGGED_IN_SALT=put-your-unique-phrase-here
+NONCE_SALT=put-your-unique-phrase-here
+
+# ============================================
+# ドメイン設定
+# ============================================
+DOMAIN=k-trendtimes.com
+EMAIL=admin@k-trendtimes.com
+
+# ============================================
+# WordPress REST API 設定
+# ============================================
+# WordPress サイトURL
+WORDPRESS_URL=http://34.84.132.199
+
+# WordPress ユーザー名
+WORDPRESS_USER=admin
+
+# WordPress Application Password
+# 管理画面 → ユーザー → プロフィール → アプリケーションパスワードで生成
+WORDPRESS_APP_PASSWORD=Q1favzbyzIcX3qlhAeBbAMqO
+
+# ============================================
+# LINE Messaging API 設定
+# ============================================
+LINE_CHANNEL_ACCESS_TOKEN=rZ3CuoKVbfB4mViTCOZtVGXRboKJFjBDY4kA3GhzAjCYF+jqvsW7JhMORG2bM5zbBN1fq53OZZeoJJjQLK5kWcK5M1xnZAGWheEmtV6g4qHuLfu1JjjMHNosHDhuA2UDQTwrfEZYA2esFGPqYEgOmwdB04t89/1O/w1cDnyilFU=
+LINE_CHANNEL_SECRET=5d5cee67f4ebc4dbacd925ddbdadcecb
+LINE_ADMIN_USER_ID=Ubd61e83e61bbe07d8df7c6a2a62c0a72
+
+# ============================================
+# Google Cloud 設定
+# ============================================
+GCP_PROJECT_ID=k-trend-autobot
+GCP_SA_KEY_PATH=/Users/yuiyane/K-Trend-AutoBot/k-trend-autobot-335cff2a54ef.json
+GOOGLE_APPLICATION_CREDENTIALS=/Users/yuiyane/K-Trend-AutoBot/k-trend-autobot-335cff2a54ef.json
+
+# Cloud Functions URL (デプロイ後に設定)
+CLOUD_FUNCTIONS_URL=https://asia-northeast1-k-trend-autobot.cloudfunctions.net/ktrend-autobot
+
+# ============================================
+# Gemini AI 設定
+# ============================================
+GEMINI_API_KEY=AIzaSyBGH44xYwjMWBCLMrQL2H7lXsQ9wQZ5vm4
+
+# ============================================
+# Google Custom Search 設定
+# ============================================
+GOOGLE_CUSTOM_SEARCH_API_KEY=AIzaSyAr4F0lyiXoNhN26B3LhfCQJn5gitfi3GU
+GOOGLE_CSE_ID=30f0af524ff404bda
+
+# ============================================
+# Google Analytics 4 設定
+# ============================================
+GA4_PROPERTY_ID=462773259
+
+# ============================================
+# AdSense レポート設定
+# ============================================
+# AdSense CSVファイルのパス (オプション)
+ADSENSE_CSV_PATH=

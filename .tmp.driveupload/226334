@@ -1,0 +1,128 @@
+/* [next]/internal/font/google/encode_sans_condensed_960b1f45.module.css [app-client] (css) */
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../media/f87a64c88211c577-s.a7beaae7.woff2") format("woff2");
+  unicode-range: U+102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301, U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../media/e7af76308bd51247-s.98725234.woff2") format("woff2");
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../media/23d149c1424383fc-s.p.6cb0a450.woff2") format("woff2");
+  unicode-range: U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../media/25adc57a4c13edca-s.66a5ce60.woff2") format("woff2");
+  unicode-range: U+102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301, U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../media/afe15c9eebe9391a-s.2b02c241.woff2") format("woff2");
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../media/2c6fbda04d0b0fb3-s.p.f99af2e7.woff2") format("woff2");
+  unicode-range: U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../media/8217db5a9e88cf55-s.c14405a9.woff2") format("woff2");
+  unicode-range: U+102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301, U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../media/2011f23625caaca0-s.eb594c08.woff2") format("woff2");
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../media/d675d3ad9e7fbae5-s.p.4cbc8cb3.woff2") format("woff2");
+  unicode-range: U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../media/7ea31458c4adff90-s.38f156c4.woff2") format("woff2");
+  unicode-range: U+102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301, U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../media/92e6a75ff2e20eeb-s.b7ba0e88.woff2") format("woff2");
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../media/2f39fed15b6b5799-s.p.9f4bc5cc.woff2") format("woff2");
+  unicode-range: U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Encode Sans Condensed Fallback;
+  src: local(Arial);
+  ascent-override: 120.52%;
+  descent-override: 25.74%;
+  line-gap-override: 0.0%;
+  size-adjust: 85.46%;
+}
+
+.encode_sans_condensed_960b1f45-module__x5RhIW__className {
+  font-family: Encode Sans Condensed, Encode Sans Condensed Fallback;
+  font-style: normal;
+}
+
+.encode_sans_condensed_960b1f45-module__x5RhIW__variable {
+  --font-encode-sans: "Encode Sans Condensed", "Encode Sans Condensed Fallback";
+}
+
+/*# sourceMappingURL=%5Bnext%5D_internal_font_google_encode_sans_condensed_960b1f45_module_css_bad6b30c._.single.css.map*/

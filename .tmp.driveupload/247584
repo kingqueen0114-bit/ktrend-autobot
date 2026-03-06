@@ -1,0 +1,13 @@
+import ora from 'ora';
+export declare function Logger(log: (msg: string) => void, flags?: {
+    verbose?: boolean;
+    trace?: boolean;
+}): {
+    (msg: string): void;
+    trace(formatter: unknown, ...args: unknown[]): false | void;
+    verbose(formatter: unknown, ...args: unknown[]): false | void;
+    info(formatter: unknown, ...args: unknown[]): false | void;
+    warn(formatter: unknown, ...args: unknown[]): false | void;
+    error(formatter: unknown, ...args: unknown[]): false | void;
+    ora: typeof ora;
+};

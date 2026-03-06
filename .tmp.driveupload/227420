@@ -1,0 +1,8 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /studio/
+Disallow: /edit/
+Disallow: /drafts/
+
+Sitemap: https://k-trendtimes.com/sitemap.xml

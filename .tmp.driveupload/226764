@@ -1,0 +1,21 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/edit/route": "/api/edit",
+  "/api/exit-preview/route": "/api/exit-preview",
+  "/api/preview/route": "/api/preview",
+  "/api/revalidate/route": "/api/revalidate",
+  "/api/upload/route": "/api/upload",
+  "/articles/[slug]/page": "/articles/[slug]",
+  "/articles/page": "/articles",
+  "/artist/[tag]/page": "/artist/[tag]",
+  "/category/[slug]/page": "/category/[slug]",
+  "/drafts/page": "/drafts",
+  "/edit/[id]/page": "/edit/[id]",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/",
+  "/robots.txt/route": "/robots.txt",
+  "/search/page": "/search",
+  "/sitemap.xml/route": "/sitemap.xml",
+  "/tag/[slug]/page": "/tag/[slug]"
+}
