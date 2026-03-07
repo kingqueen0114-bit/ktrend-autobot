@@ -77,6 +77,10 @@ def view_draft(request):
         # --- Normal Form Submission Logic ---
 
         # 1. Update Content with Edited Validation
+        # Preserve AI generated fields like highlights (Checkpoints) and quality_score
+        original_highlights = draft.get('cms_content', {}).get('highlights', draft.get('highlights', []))
+        original_quality = draft.get('cms_content', {}).get('quality_score', draft.get('quality_score', 0))
+
         # CMS
         cms_content = draft.get('cms_content', {})
         if 'approve_cms' in form:
@@ -85,6 +89,9 @@ def view_draft(request):
             cms_content['meta_description'] = form.get('cms_meta', '')
             cms_content['x_post_1'] = form.get('x_post_1', '')
             cms_content['x_post_2'] = form.get('x_post_2', '')
+            # Ensure we don't delete the AI fields
+            cms_content['highlights'] = original_highlights
+            cms_content['quality_score'] = original_quality
 
         # SNS
         sns_content = draft.get('sns_content', {})
