@@ -110,14 +110,21 @@ def view_draft(request):
         uploaded_file = request.files.get('image_file')
         if uploaded_file and uploaded_file.filename:
             try:
+                from src import sanity_client
                 image_bytes = uploaded_file.read()
                 content_type = uploaded_file.content_type or 'image/jpeg'
-                uploaded_url = storage.upload_bytes_to_gcs(image_bytes, content_type)
+                # Upload to Sanity instead of GCS
+                sanity_result = sanity_client.upload_image(
+                    image_bytes, 
+                    filename=uploaded_file.filename, 
+                    content_type=content_type
+                )
+                uploaded_url = sanity_result.get("url") if sanity_result else None
                 if uploaded_url:
                     new_image_url = uploaded_url
-                    log_event("IMAGE_UPLOADED", f"File uploaded: {uploaded_file.filename}")
+                    log_event("IMAGE_UPLOADED", f"File uploaded and saved to Sanity: {uploaded_file.filename}")
             except Exception as e:
-                log_event("IMAGE_UPLOAD_ERROR", str(e))
+                log_event("IMAGE_UPLOAD_ERROR", f"Sanity upload failed: {str(e)}")
 
         # Use new image URL if provided and different
         if new_image_url and new_image_url != original_image_url:

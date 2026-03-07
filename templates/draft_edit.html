@@ -629,7 +629,10 @@
 
             // Parse Markdown
             if (typeof marked !== 'undefined') {
-                document.getElementById('preview-body').innerHTML = marked.parse(body, { breaks: true });
+                document.getElementById('preview-body').innerHTML = marked.parse(body, {
+                    gfm: true,
+                    breaks: true
+                });
             } else {
                 document.getElementById('preview-body').innerHTML = body.replace(/\n/g, '<br>');
             }
