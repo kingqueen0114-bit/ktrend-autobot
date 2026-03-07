@@ -7,6 +7,7 @@ import os
 import uuid
 import logging
 import requests
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,8 @@ def query(groq_query: str, params: dict = None) -> list:
     payload = {"query": groq_query}
     if params:
         for k, v in params.items():
-            payload[f"${k}"] = v
+            # GROQ parameters via HTTP must be JSON encoded
+            payload[f"${k}"] = json.dumps(v)
 
     resp = requests.get(
         _query_url(),
