@@ -1,6 +1,6 @@
 'use client'
 
-import {useState} from 'react'
+import { useState } from 'react'
 import Checkpoint from './Checkpoint'
 import PortableText from './PortableText'
 import AdSlot from './AdSlot'
@@ -11,7 +11,7 @@ type Props = {
   sourceUrl?: string
 }
 
-export default function ArticleBody({highlights, body, sourceUrl}: Props) {
+export default function ArticleBody({ highlights, body, sourceUrl }: Props) {
   const hasHighlights = highlights && highlights.length > 0
   const [expanded, setExpanded] = useState(!hasHighlights)
 
@@ -38,13 +38,13 @@ export default function ArticleBody({highlights, body, sourceUrl}: Props) {
       {/* Article body */}
       {expanded && (
         <>
-          <AdSlot slot="article-top" style={{minHeight: 250}} />
+          <AdSlot slot="article-top" className="min-h-[250px] mb-6" />
 
           <div className="prose-custom">
             {body && <PortableText value={body} />}
           </div>
 
-          <AdSlot slot="article-bottom" style={{minHeight: 280}} />
+          <AdSlot slot="article-bottom" className="min-h-[250px] mt-8" />
 
           {/* Source */}
           {sourceUrl && (

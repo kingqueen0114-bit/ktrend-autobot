@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import {client} from '@/lib/sanity'
-import {articlesQuery, allArtistTagsQuery} from '@/lib/queries'
+import { client } from '@/lib/sanity'
+import { articlesQuery, allArtistTagsQuery } from '@/lib/queries'
 import ArticleCard from './ArticleCard'
 import AdSlot from '@/components/AdSlot'
 
 export default async function Sidebar() {
   const [popularArticles, artistTags] = await Promise.all([
-    client.fetch(articlesQuery, {limit: 5}),
+    client.fetch(articlesQuery, { limit: 5 }),
     client.fetch(allArtistTagsQuery),
   ])
 
@@ -48,7 +48,7 @@ export default async function Sidebar() {
       )}
 
       {/* Ad slot */}
-      <AdSlot slot="sidebar" style={{minHeight: 600}} />
+      <AdSlot slot="sidebar" className="min-h-[250px] md:min-h-[600px]" />
     </aside>
   )
 }
