@@ -53,10 +53,17 @@ def view_draft(request):
                 return json.dumps({"error": "No file uploaded"}), 400, {'Content-Type': 'application/json'}
 
             try:
-                storage = StorageManager()
+                from src import sanity_client
                 image_bytes = uploaded_file.read()
                 content_type = uploaded_file.content_type or 'image/jpeg'
-                uploaded_url = storage.upload_bytes_to_gcs(image_bytes, content_type)
+                
+                # Upload directly to Sanity instead of GCS
+                sanity_result = sanity_client.upload_image(
+                    image_bytes, 
+                    filename=uploaded_file.filename or "inline.jpg", 
+                    content_type=content_type
+                )
+                uploaded_url = sanity_result.get("url")
 
                 if uploaded_url:
                     log_event("INLINE_IMAGE_UPLOADED", f"Inline image uploaded: {uploaded_file.filename}")

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,82 +8,370 @@
     <!-- Use reliable CDN for marked.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f2f5;
+        }
 
         /* Tab Navigation */
-        .tab-nav { display: flex; background: #1DB446; position: sticky; top: 0; z-index: 100; }
-        .tab-btn { flex: 1; padding: 15px; border: none; background: transparent; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
-        .tab-btn:hover { background: rgba(255,255,255,0.1); }
-        .tab-btn.active { background: rgba(255,255,255,0.2); border-bottom: 3px solid white; }
+        .tab-nav {
+            display: flex;
+            background: #1DB446;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-bottom: 3px solid white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
 
         /* Editor Panel */
-        .editor-panel { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .editor-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-
-        h2 { color: #1DB446; margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid #e8f5e9; }
-        h3 { color: #333; margin: 20px 0 10px; }
-
-        label { font-weight: 600; display: block; margin-bottom: 8px; color: #333; }
-        input[type="text"], input[type="url"], textarea, select {
-            width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;
-            font-size: 15px; transition: border-color 0.3s; background: white;
+        .editor-panel {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        input:focus, textarea:focus, select:focus { border-color: #1DB446; outline: none; }
-        textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
-        select { cursor: pointer; }
-        .tag-input-hint { color: #888; font-size: 12px; margin-top: 5px; }
-        .tag-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .tag-badge { background: #e3f2fd; color: #1976d2; padding: 5px 12px; border-radius: 15px; font-size: 13px; display: inline-flex; align-items: center; }
-        .tag-badge:before { content: '#'; margin-right: 2px; }
 
-        .image-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .image-preview { max-width: 100%; max-height: 300px; border-radius: 8px; margin: 10px 0; object-fit: cover; }
-        .image-input-group { display: flex; gap: 10px; margin-top: 10px; }
-        .image-input-group input { flex: 1; }
-        .btn-update-image { padding: 12px 20px; background: #0277bd; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .btn-update-image:hover { background: #01579b; }
+        .editor-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
 
-        .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 12px; background: #fff8e1; border-radius: 8px; margin-bottom: 15px; }
-        .checkbox-row input[type="checkbox"] { width: 20px; height: 20px; }
+        h2 {
+            color: #1DB446;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e8f5e9;
+        }
 
-        .submit-section { position: sticky; bottom: 0; background: white; padding: 20px; border-top: 1px solid #eee; margin: 0 -25px -25px; border-radius: 0 0 12px 12px; }
-        .submit-btn { width: 100%; padding: 18px; background: #1DB446; color: white; border: none; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        .submit-btn:hover { background: #159e3c; }
+        h3 {
+            color: #333;
+            margin: 20px 0 10px;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            background: white;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #1DB446;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .tag-input-hint {
+            color: #888;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .tag-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tag-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .tag-badge:before {
+            content: '#';
+            margin-right: 2px;
+        }
+
+        .image-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin: 10px 0;
+            object-fit: cover;
+        }
+
+        .image-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .image-input-group input {
+            flex: 1;
+        }
+
+        .btn-update-image {
+            padding: 12px 20px;
+            background: #0277bd;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-update-image:hover {
+            background: #01579b;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #fff8e1;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .submit-section {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            margin: 0 -25px -25px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: #1DB446;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background: #159e3c;
+        }
 
         /* Preview Panel - K-TREND TIMES Style */
-        .preview-panel { background: white; min-height: 100vh; }
-        .site-header { background: linear-gradient(135deg, #1DB446 0%, #0d7a2e 100%); padding: 15px 20px; text-align: center; }
-        .site-logo { color: white; font-size: 24px; font-weight: bold; margin: 0; }
-        .site-logo span { color: #ffd700; }
+        .preview-panel {
+            background: white;
+            min-height: 100vh;
+        }
 
-        .article-container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .article-category { display: inline-block; background: #1DB446; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 15px; }
-        .article-title { font-size: 28px; font-weight: bold; color: #222; line-height: 1.4; margin-bottom: 20px; }
-        .article-meta { color: #888; font-size: 14px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .article-featured-image { width: 100%; max-height: 450px; object-fit: cover; border-radius: 12px; margin-bottom: 25px; }
-        .article-body { font-size: 16px; line-height: 1.9; color: #333; }
-        .article-body h2 { font-size: 22px; color: #1DB446; margin: 30px 0 15px; padding-left: 15px; border-left: 4px solid #1DB446; }
-        .article-body h3 { font-size: 18px; color: #333; margin: 25px 0 10px; }
-        .article-body p { margin-bottom: 20px; }
-        .article-body ul, .article-body ol { margin: 15px 0; padding-left: 25px; }
-        .article-body li { margin-bottom: 8px; }
-        .article-body blockquote { background: #f8f9fa; border-left: 4px solid #1DB446; padding: 15px 20px; margin: 20px 0; font-style: italic; }
+        .site-header {
+            background: linear-gradient(135deg, #1DB446 0%, #0d7a2e 100%);
+            padding: 15px 20px;
+            text-align: center;
+        }
 
-        .meta-preview { background: #f0f7f1; padding: 15px; border-radius: 8px; margin-top: 30px; }
-        .meta-preview-title { font-weight: bold; color: #1DB446; margin-bottom: 10px; }
-        .meta-preview-text { color: #666; font-size: 14px; }
+        .site-logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .site-logo span {
+            color: #ffd700;
+        }
+
+        .article-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .article-category {
+            display: inline-block;
+            background: #1DB446;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .article-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #222;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+
+        .article-meta {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .article-featured-image {
+            width: 100%;
+            max-height: 450px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .article-body {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #333;
+        }
+
+        .article-body h2 {
+            font-size: 22px;
+            color: #1DB446;
+            margin: 30px 0 15px;
+            padding-left: 15px;
+            border-left: 4px solid #1DB446;
+        }
+
+        .article-body h3 {
+            font-size: 18px;
+            color: #333;
+            margin: 25px 0 10px;
+        }
+
+        .article-body p {
+            margin-bottom: 20px;
+        }
+
+        .article-body ul,
+        .article-body ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .article-body li {
+            margin-bottom: 8px;
+        }
+
+        .article-body blockquote {
+            background: #f8f9fa;
+            border-left: 4px solid #1DB446;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        .article-body strong,
+        .article-body b {
+            font-weight: bold !important;
+            color: #111;
+        }
+
+        .meta-preview {
+            background: #f0f7f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .meta-preview-title {
+            font-weight: bold;
+            color: #1DB446;
+            margin-bottom: 10px;
+        }
+
+        .meta-preview-text {
+            color: #666;
+            font-size: 14px;
+        }
 
         /* Mobile */
         @media (max-width: 768px) {
-            .article-title { font-size: 22px; }
-            .article-body { font-size: 15px; }
+            .article-title {
+                font-size: 22px;
+            }
+
+            .article-body {
+                font-size: 15px;
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- Tab Navigation -->
     <div class="tab-nav">
@@ -100,24 +389,25 @@
                     <h2>🖼️ アイキャッチ画像</h2>
                     <div class="image-section">
                         <img id="preview-image" src="{{ image_url }}" class="image-preview"
-                             onerror="this.src='https://via.placeholder.com/800x450?text=画像を設定してください'">
+                            onerror="this.src='https://via.placeholder.com/800x450?text=画像を設定してください'">
                         <label style="margin-top: 15px;">📷 画像クレジット・出典</label>
-                        <input type="text" id="image_source" name="image_source"
-                               value="{{ image_source }}"
-                               placeholder="例: Photo by Unsplash, BigHit Music提供"
-                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                        <input type="text" id="image_source" name="image_source" value="{{ image_source }}"
+                            placeholder="例: Photo by Unsplash, BigHit Music提供"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
                         <p style="color: #888; font-size: 12px; margin-top: 5px;">※ 画像の出典やクレジットを入力してください。記事に表示されます。</p>
 
                         <label style="margin-top: 15px;">📁 画像ファイルをアップロード</label>
                         <input type="file" id="image_file" name="image_file" accept="image/*"
-                               style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; cursor: pointer;"
-                               onchange="previewUploadedImage(this)">
+                            style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; cursor: pointer;"
+                            onchange="previewUploadedImage(this)">
                         <p style="color: #888; font-size: 12px; margin-top: 5px;">※ JPG, PNG, WebP対応（最大10MB）</p>
 
                         <label style="margin-top: 15px;">🔗 または画像URL（変更する場合は新しいURLを入力）</label>
                         <div class="image-input-group">
-                            <input type="url" id="image_url" name="image_url" value="{{ image_url }}" placeholder="https://example.com/image.jpg">
-                            <button type="button" class="btn-update-image" onclick="updateImagePreview()">プレビュー更新</button>
+                            <input type="url" id="image_url" name="image_url" value="{{ image_url }}"
+                                placeholder="https://example.com/image.jpg">
+                            <button type="button" class="btn-update-image"
+                                onclick="updateImagePreview()">プレビュー更新</button>
                         </div>
                         <p style="color: #888; font-size: 12px; margin-top: 8px;">※ ファイルアップロード優先。URLはファイル未選択時に使用されます</p>
                     </div>
@@ -129,22 +419,20 @@
 
                     <label>カテゴリー</label>
                     <select id="category" name="category" onchange="updateCategoryPreview()">
-                        <option value="artist" {% if category == "artist" %}selected{% endif %}>🎤 K-POP・アーティスト</option>
-                        <option value="beauty" {% if category == "beauty" %}selected{% endif %}>💄 ビューティー</option>
-                        <option value="fashion" {% if category == "fashion" %}selected{% endif %}>👗 ファッション</option>
-                        <option value="food" {% if category == "food" %}selected{% endif %}>🍜 グルメ</option>
-                        <option value="travel" {% if category == "travel" %}selected{% endif %}>✈️ 韓国旅行</option>
-                        <option value="event" {% if category == "event" %}selected{% endif %}>🎪 イベント</option>
-                        <option value="drama" {% if category == "drama" %}selected{% endif %}>📺 ドラマ</option>
-                        <option value="trend" {% if category == "trend" %}selected{% endif %}>📈 トレンド</option>
-                        <option value="other" {% if category == "other" %}selected{% endif %}>📰 その他</option>
+                        <option value="artist" {% if category=="artist" %}selected{% endif %}>🎤 K-POP・アーティスト</option>
+                        <option value="beauty" {% if category=="beauty" %}selected{% endif %}>💄 ビューティー</option>
+                        <option value="fashion" {% if category=="fashion" %}selected{% endif %}>👗 ファッション</option>
+                        <option value="food" {% if category=="food" %}selected{% endif %}>🍜 グルメ</option>
+                        <option value="travel" {% if category=="travel" %}selected{% endif %}>✈️ 韓国旅行</option>
+                        <option value="event" {% if category=="event" %}selected{% endif %}>🎪 イベント</option>
+                        <option value="drama" {% if category=="drama" %}selected{% endif %}>📺 ドラマ</option>
+                        <option value="trend" {% if category=="trend" %}selected{% endif %}>📈 トレンド</option>
+                        <option value="other" {% if category=="other" %}selected{% endif %}>📰 その他</option>
                     </select>
 
                     <label style="margin-top: 20px;">アーティストタグ（カンマ区切り）</label>
-                    <input type="text" id="artist_tags" name="artist_tags"
-                           value="{{ artist_tags_str }}"
-                           placeholder="例: BTS, BLACKPINK, NewJeans"
-                           oninput="updateTagPreview()">
+                    <input type="text" id="artist_tags" name="artist_tags" value="{{ artist_tags_str }}"
+                        placeholder="例: BTS, BLACKPINK, NewJeans" oninput="updateTagPreview()">
                     <p class="tag-input-hint">複数のタグはカンマ（,）で区切ってください。Sanityのタグとして登録されます。</p>
                     <div id="tag-preview" class="tag-preview"></div>
                 </div>
@@ -155,30 +443,43 @@
 
                     <div class="checkbox-row">
                         <input type="checkbox" id="approve_cms" name="approve_cms" checked>
-                        <label for="approve_cms" style="margin: 0; cursor: pointer;">この記事をSanity (K-Trend Times) に公開する</label>
+                        <label for="approve_cms" style="margin: 0; cursor: pointer;">この記事をSanity (K-Trend Times)
+                            に公開する</label>
                     </div>
 
                     <label>タイトル</label>
-                    <input type="text" id="cms_title" name="cms_title" value="{{ title_escaped }}" oninput="updatePreview()">
+                    <input type="text" id="cms_title" name="cms_title" value="{{ title_escaped }}"
+                        oninput="updatePreview()">
 
                     <h3>メタ説明（SEO用・160文字以内推奨）</h3>
-                    <textarea id="cms_meta" name="cms_meta" style="height: 80px;" oninput="updatePreview()">{{ meta_escaped }}</textarea>
+                    <textarea id="cms_meta" name="cms_meta" style="height: 80px;"
+                        oninput="updatePreview()">{{ meta_escaped }}</textarea>
                     <p style="color: #888; font-size: 12px; text-align: right;"><span id="meta-count">0</span>/160文字</p>
 
                     <h3>本文（Markdown形式）</h3>
                     <!-- Hidden file input for inline image upload -->
-                    <input type="file" id="inline-image-upload" accept="image/*" style="display: none;" onchange="uploadInlineImage(this)">
+                    <input type="file" id="inline-image-upload" accept="image/*" style="display: none;"
+                        onchange="uploadInlineImage(this)">
 
                     <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                        <button type="button" onclick="document.getElementById('inline-image-upload').click()" style="padding: 8px 16px; background: #0277bd; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">📷 画像を追加</button>
-                        <button type="button" onclick="insertMarkdown('## ')" style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">H2</button>
-                        <button type="button" onclick="insertMarkdown('### ')" style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">H3</button>
-                        <button type="button" onclick="wrapSelection('**')" style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">B</button>
-                        <button type="button" onclick="insertMarkdown('&gt; ')" style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">引用</button>
-                        <button type="button" onclick="insertMarkdown('- ')" style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">リスト</button>
+                        <button type="button" onclick="document.getElementById('inline-image-upload').click()"
+                            style="padding: 8px 16px; background: #0277bd; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">📷
+                            画像を追加</button>
+                        <button type="button" onclick="insertMarkdown('## ')"
+                            style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">H2</button>
+                        <button type="button" onclick="insertMarkdown('### ')"
+                            style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">H3</button>
+                        <button type="button" onclick="wrapSelection('**')"
+                            style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">B</button>
+                        <button type="button" onclick="insertMarkdown('&gt; ')"
+                            style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">引用</button>
+                        <button type="button" onclick="insertMarkdown('- ')"
+                            style="padding: 8px 12px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">リスト</button>
                     </div>
-                    <textarea id="cms_body" name="cms_body" style="height: 400px;" oninput="updatePreview()">{{ body_escaped }}</textarea>
-                    <p style="color: #888; font-size: 12px;">Markdownが使えます: **太字**, ## 見出し, - リスト, > 引用, ![説明](URL) 画像</p>
+                    <textarea id="cms_body" name="cms_body" style="height: 400px;"
+                        oninput="updatePreview()">{{ body_escaped }}</textarea>
+                    <p style="color: #888; font-size: 12px;">Markdownが使えます: **太字**, ## 見出し, - リスト, > 引用, ![説明](URL) 画像
+                    </p>
                 </div>
 
                 <!-- X Posts -->
@@ -194,7 +495,8 @@
 
                 <!-- SNS Section (Collapsed) -->
                 <details class="editor-container">
-                    <summary style="cursor: pointer; font-weight: bold; color: #1DB446;">📱 SNS投稿バリエーション（クリックで展開）</summary>
+                    <summary style="cursor: pointer; font-weight: bold; color: #1DB446;">📱 SNS投稿バリエーション（クリックで展開）
+                    </summary>
                     <div style="margin-top: 15px;">
                         <div class="checkbox-row">
                             <input type="checkbox" id="approve_news" name="approve_news" checked>
@@ -218,9 +520,12 @@
 
                 <!-- Submit -->
                 <div class="submit-section">
-                    <button type="submit" class="submit-btn" name="action_type" value="publish">✅ 記事を公開する (Sanity)</button>
-                    <button type="submit" class="submit-btn" style="background: #0277bd; margin-top: 10px;" name="action_type" value="save_draft">💾 下書きとして保存する</button>
-                    <p style="text-align: center; color: #888; font-size: 13px; margin: 10px 0 0;">チェックした項目のみ公開・保存されます</p>
+                    <button type="submit" class="submit-btn" name="action_type" value="publish">✅ 記事を公開する
+                        (Sanity)</button>
+                    <button type="submit" class="submit-btn" style="background: #0277bd; margin-top: 10px;"
+                        name="action_type" value="save_draft">💾 下書きとして保存する</button>
+                    <p style="text-align: center; color: #888; font-size: 13px; margin: 10px 0 0;">チェックした項目のみ公開・保存されます
+                    </p>
                 </div>
             </form>
         </div>
@@ -242,7 +547,7 @@
                     <span>🏷️ <span id="preview-category-meta">{{ category_display }}</span></span>
                 </div>
                 <img id="preview-featured-image" class="article-featured-image" src="{{ image_url }}"
-                     onerror="this.src='https://via.placeholder.com/800x450?text=No+Image'">
+                    onerror="this.src='https://via.placeholder.com/800x450?text=No+Image'">
                 <div id="preview-body" class="article-body"></div>
 
                 <div class="meta-preview">
@@ -315,7 +620,7 @@
 
             // Parse Markdown
             if (typeof marked !== 'undefined') {
-                document.getElementById('preview-body').innerHTML = marked.parse(body);
+                document.getElementById('preview-body').innerHTML = marked.parse(body, { breaks: true });
             } else {
                 document.getElementById('preview-body').innerHTML = body.replace(/\n/g, '<br>');
             }
@@ -430,4 +735,5 @@
         }
     </script>
 </body>
+
 </html>
