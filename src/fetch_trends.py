@@ -70,7 +70,7 @@ class TrendFetcher:
     def _search_google(self, query: str, num_results: int = 5) -> List[Dict]:
         """
         Search Google using Custom Search API.
-        Disabled due to expired API Key; forcing use of Gemini fallback.
+        Falls back to Gemini if API Key is missing or quota is exceeded.
 
         Args:
             query: Search query
@@ -79,8 +79,28 @@ class TrendFetcher:
         Returns:
             List of search results
         """
-        log_event("GOOGLE_SEARCH_BYPASS", "Google Search API bypassed, using Gemini fallback")
-        return self._search_with_gemini(query)
+        if not self.search_api_key or not self.search_engine_id:
+            log_event("GOOGLE_SEARCH_BYPASS", "Google Search API keys missing, using Gemini fallback")
+            return self._search_with_gemini(query)
+
+        try:
+            url = f"https://www.googleapis.com/customsearch/v1?key={self.search_api_key}&cx={self.search_engine_id}&q={query}&num={num_results}"
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 429: # Quota Exceeded
+                log_event("GOOGLE_SEARCH_QUOTA", "Google Search API quota exceeded, using Gemini fallback")
+                return self._search_with_gemini(query)
+                
+            response.raise_for_status()
+            data = response.json()
+            
+            items = data.get("items", [])
+            log_event("GOOGLE_SEARCH_SUCCESS", f"Found {len(items)} results for {query}")
+            return items
+            
+        except Exception as e:
+            log_error("GOOGLE_SEARCH_ERROR", "Google Search API failed, using Gemini fallback", error=e)
+            return self._search_with_gemini(query)
 
     def _search_with_gemini(self, query: str) -> List[Dict]:
         """Fallback search using Gemini REST API when Google Custom Search fails."""

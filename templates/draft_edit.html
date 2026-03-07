@@ -145,7 +145,7 @@
                            value="{{ artist_tags_str }}"
                            placeholder="例: BTS, BLACKPINK, NewJeans"
                            oninput="updateTagPreview()">
-                    <p class="tag-input-hint">複数のタグはカンマ（,）で区切ってください。WordPressのタグとして登録されます。</p>
+                    <p class="tag-input-hint">複数のタグはカンマ（,）で区切ってください。Sanityのタグとして登録されます。</p>
                     <div id="tag-preview" class="tag-preview"></div>
                 </div>
 
@@ -155,7 +155,7 @@
 
                     <div class="checkbox-row">
                         <input type="checkbox" id="approve_cms" name="approve_cms" checked>
-                        <label for="approve_cms" style="margin: 0; cursor: pointer;">この記事をWordPressに公開する</label>
+                        <label for="approve_cms" style="margin: 0; cursor: pointer;">この記事をSanity (K-Trend Times) に公開する</label>
                     </div>
 
                     <label>タイトル</label>
@@ -218,7 +218,7 @@
 
                 <!-- Submit -->
                 <div class="submit-section">
-                    <button type="submit" class="submit-btn" name="action_type" value="publish">✅ WordPressに公開する</button>
+                    <button type="submit" class="submit-btn" name="action_type" value="publish">✅ 記事を公開する (Sanity)</button>
                     <button type="submit" class="submit-btn" style="background: #0277bd; margin-top: 10px;" name="action_type" value="save_draft">💾 下書きとして保存する</button>
                     <p style="text-align: center; color: #888; font-size: 13px; margin: 10px 0 0;">チェックした項目のみ公開・保存されます</p>
                 </div>

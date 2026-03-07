@@ -166,13 +166,12 @@ def view_draft(request):
 
         # 4. Publish to Sanity if CMS is approved
         if 'approve_cms' in form:
-            # Sanity移行: draft_idを使用して公開
             sanity_draft_id = draft.get('sanity_draft_id') or draft_id
-            wp_post_id = draft.get('wordpress_post_id') or draft.get('wordpress_id')
-            result = storage.publish_to_wordpress(cms_content, img_url, category=new_category, artist_tags=artist_tags, wp_post_id=wp_post_id, draft_id=sanity_draft_id)
+            result = storage.publish_to_sanity(cms_content, img_url, category=new_category, artist_tags=artist_tags, draft_id=sanity_draft_id)
             if result:
-                draft['wordpress_url'] = result['url']
-                draft['wordpress_id'] = result['id']
+                draft['sanity_url'] = result['url']
+                draft['sanity_id'] = result['id']
+                draft['wordpress_url'] = result['url']  # Fallback for draft list display
                 storage.save_draft(draft, draft_id)
 
                 # Success page with link
@@ -212,18 +211,55 @@ def view_draft(request):
                 links=[{'href': 'javascript:history.back()', 'label': '← 戻る', 'style': 'outline', 'target': None}]
             ), 200
 
-    # --- GET Request: Redirect to Next.js edit page ---
-    next_app_url = os.environ.get("NEXT_APP_URL", "https://k-trendtimes.com")
-    edit_secret = os.environ.get("EDIT_SECRET", "")
+    # --- GET Request: Render built-in HTML editor ---
+    import html
+    
+    cms_content = draft.get('cms_content', {})
+    sns_content = draft.get('sns_content', {})
+    trend_source = draft.get('trend_source', {})
 
-    # Generate HMAC token for edit page authentication
-    edit_token = hmac.new(edit_secret.encode(), draft_id.encode(), hashlib.sha256).hexdigest() if edit_secret else ""
-    edit_url = f"{next_app_url}/edit/{draft_id}?token={edit_token}"
+    title_escaped = html.escape(cms_content.get('title', '無題'))
+    meta_escaped = html.escape(cms_content.get('meta_description', ''))
+    body_escaped = html.escape(cms_content.get('body', ''))
 
-    log_event("VIEW_DRAFT_REDIRECT", f"Redirecting to Next.js edit page", draft_id=draft_id)
+    category = trend_source.get('category', 'trend')
+    artist_tags = trend_source.get('artist_tags', [])
+    artist_tags_str = ", ".join(artist_tags) if isinstance(artist_tags, list) else str(artist_tags)
 
-    # 302 redirect to Next.js edit page
-    return "", 302, {"Location": edit_url}
+    category_names = {
+        'artist': '🎤 K-POP・アーティスト',
+        'beauty': '💄 ビューティー',
+        'fashion': '👗 ファッション',
+        'food': '🍜 グルメ',
+        'travel': '✈️ 韓国旅行',
+        'event': '🎪 イベント',
+        'drama': '📺 ドラマ',
+        'trend': '📈 トレンド',
+        'other': '📰 その他'
+    }
+    category_display = category_names.get(category, '📈 トレンド')
+
+    html_content = render_template('draft_edit.html',
+        draft_id=draft_id,
+        draft=draft,
+        image_url=trend_source.get('image_url', ''),
+        image_source=trend_source.get('image_source', ''),
+        category=category,
+        category_display=category_display,
+        artist_tags_str=artist_tags_str,
+        title_escaped=title_escaped,
+        meta_escaped=meta_escaped,
+        body_escaped=body_escaped,
+        x_post_1=cms_content.get('x_post_1', ''),
+        x_post_2=cms_content.get('x_post_2', ''),
+        news_post=sns_content.get('news_post', ''),
+        luna_post_a=sns_content.get('luna_post_a', ''),
+        luna_post_b=sns_content.get('luna_post_b', ''),
+        current_date=datetime.now().strftime('%Y年%m月%d日'),
+    )
+
+    log_event("VIEW_DRAFT_RENDER", f"Rendering built-in HTML editor", draft_id=draft_id)
+    return html_content, 200
 
 def view_article_list(request):
     """
