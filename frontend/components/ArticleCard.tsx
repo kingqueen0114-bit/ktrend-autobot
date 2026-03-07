@@ -1,17 +1,17 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import {urlFor} from '@/lib/sanity'
+import { urlFor } from '@/lib/sanity'
 import CategoryBadge from './CategoryBadge'
 
 type Props = {
   article: {
     _id: string
     title: string
-    slug: {current: string}
+    slug: { current: string }
     publishedAt?: string
     excerpt?: string
     mainImage?: any
-    category?: {title: string; slug: {current: string}; color: string}
+    category?: { title: string; slug: { current: string }; color: string }
     artistTags?: string[]
   }
   variant?: 'default' | 'featured' | 'sidebar'
@@ -25,17 +25,17 @@ function getRankStyle(rank: number): string {
   return 'bg-gray-400'
 }
 
-export default function ArticleCard({article, variant = 'default', rank}: Props) {
+export default function ArticleCard({ article, variant = 'default', rank }: Props) {
   const imageUrl = article.mainImage
     ? urlFor(article.mainImage).width(variant === 'sidebar' ? 120 : 640).height(variant === 'sidebar' ? 80 : 360).url()
     : null
 
   const date = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString('ja-JP', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
     : ''
 
   if (variant === 'sidebar') {
@@ -63,8 +63,8 @@ export default function ArticleCard({article, variant = 'default', rank}: Props)
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
+        <div className="flex-1 min-w-0 pr-2">
+          <h4 className="text-sm font-medium text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors break-words">
             {article.title}
           </h4>
           <time className="text-xs text-[#67737e] mt-1 block">{date}</time>

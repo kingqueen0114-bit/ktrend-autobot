@@ -1,6 +1,6 @@
 'use client'
 
-import {useRouter, usePathname} from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   useRef,
   useCallback,
@@ -11,26 +11,26 @@ import {
 } from 'react'
 
 const CATEGORIES = [
-  {slug: '', path: '/'},
-  {slug: 'artist', path: '/category/artist'},
-  {slug: 'beauty', path: '/category/beauty'},
-  {slug: 'fashion', path: '/category/fashion'},
-  {slug: 'gourmet', path: '/category/gourmet'},
-  {slug: 'koreantrip', path: '/category/koreantrip'},
-  {slug: 'event', path: '/category/event'},
-  {slug: 'trend', path: '/category/trend'},
-  {slug: 'lifestyle', path: '/category/lifestyle'},
+  { slug: '', path: '/' },
+  { slug: 'artist', path: '/category/artist' },
+  { slug: 'beauty', path: '/category/beauty' },
+  { slug: 'fashion', path: '/category/fashion' },
+  { slug: 'gourmet', path: '/category/gourmet' },
+  { slug: 'koreantrip', path: '/category/koreantrip' },
+  { slug: 'event', path: '/category/event' },
+  { slug: 'trend', path: '/category/trend' },
+  { slug: 'lifestyle', path: '/category/lifestyle' },
 ]
 
 const SWIPE_THRESHOLD = 50
 const SWIPE_MAX_Y = 30 // tighter vertical threshold for better gesture detection
 
-export default function SwipeNavigator({children}: {children: ReactNode}) {
+export default function SwipeNavigator({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  const touchStart = useRef<{x: number; y: number} | null>(null)
-  const touchEnd = useRef<{x: number; y: number} | null>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const touchEnd = useRef<{ x: number; y: number } | null>(null)
 
   const [offsetX, setOffsetX] = useState(0)
   const [useTransition, setUseTransition] = useState(false)
@@ -79,14 +79,12 @@ export default function SwipeNavigator({children}: {children: ReactNode}) {
       const idx = getCurrentIndex()
       if (idx < 0) return
 
-      // Ignore touches that start near screen edges (browser back/forward gesture zone)
-      const startX = e.targetTouches[0].clientX
-      const edgeZone = 30
-      if (startX < edgeZone || startX > viewportWidth.current - edgeZone) return
+      // Allow touches everywhere, including screen edges, so users can swipe
+      // in the "safe zones" we created around AdSense iframes.
 
       touchEnd.current = null
       touchStart.current = {
-        x: startX,
+        x: e.targetTouches[0].clientX,
         y: e.targetTouches[0].clientY,
       }
       isHorizontalSwipe.current = false
@@ -147,7 +145,7 @@ export default function SwipeNavigator({children}: {children: ReactNode}) {
       }
     }
 
-    el.addEventListener('touchmove', handleTouchMove, {passive: false})
+    el.addEventListener('touchmove', handleTouchMove, { passive: false })
     return () => el.removeEventListener('touchmove', handleTouchMove)
   }, []) // Empty deps - uses refs for all mutable values
 
@@ -261,7 +259,7 @@ export default function SwipeNavigator({children}: {children: ReactNode}) {
     : 'none'
 
   return (
-    <div style={{overflow: 'hidden', position: 'relative'}}>
+    <div style={{ overflow: 'hidden', position: 'relative' }}>
       {/* Background layer - visible when content slides away */}
       <div
         style={{
