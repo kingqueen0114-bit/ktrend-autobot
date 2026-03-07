@@ -181,35 +181,49 @@ def view_draft(request):
         # 4. Publish to Sanity if CMS is approved
         if 'approve_cms' in form:
             sanity_draft_id = draft.get('sanity_draft_id') or draft_id
-            result = storage.publish_to_sanity(cms_content, img_url, category=new_category, artist_tags=artist_tags, draft_id=sanity_draft_id)
-            if result:
-                draft['sanity_url'] = result['url']
-                draft['sanity_id'] = result['id']
-                draft['wordpress_url'] = result['url']  # Fallback for draft list display
-                storage.save_draft(draft, draft_id)
+            try:
+                result = storage.publish_to_sanity(cms_content, img_url, category=new_category, artist_tags=artist_tags, draft_id=sanity_draft_id)
+                if result:
+                    draft['sanity_url'] = result['url']
+                    draft['sanity_id'] = result['id']
+                    draft['wordpress_url'] = result['url']  # Fallback for draft list display
+                    storage.save_draft(draft, draft_id)
 
-                # Success page with link
+                    return render_template('result.html',
+                        title='公開完了！',
+                        icon='🎉',
+                        heading_color='#1DB446',
+                        bg_color='#e8f5e9',
+                        message='記事が公開されました。',
+                        sub_message=None,
+                        url=result['url'],
+                        links=[
+                            {'href': result['url'], 'label': '📰 記事を確認', 'style': None, 'target': '_blank'},
+                            {'href': 'https://line.me/R/', 'label': '💬 LINEに戻る', 'style': 'secondary', 'target': None}
+                        ]
+                    ), 200
+                else:
+                    return render_template('result.html',
+                        title='公開エラー',
+                        icon='❌',
+                        heading_color='#f44336',
+                        bg_color='#ffebee',
+                        message='記事の公開に失敗しました。',
+                        sub_message='publish_to_sanity returned empty result.',
+                        url=None,
+                        links=[{'href': 'javascript:history.back()', 'label': '← 戻る', 'style': 'outline', 'target': None}]
+                    ), 500
+            except Exception as e:
+                import traceback
+                error_trace = traceback.format_exc()
+                log_error("PUBLISH_CRASH", error_trace)
                 return render_template('result.html',
-                    title='公開完了！',
-                    icon='🎉',
-                    heading_color='#1DB446',
-                    bg_color='#e8f5e9',
-                    message='記事が公開されました。',
-                    sub_message=None,
-                    url=result['url'],
-                    links=[
-                        {'href': result['url'], 'label': '📰 記事を確認', 'style': None, 'target': '_blank'},
-                        {'href': 'https://line.me/R/', 'label': '💬 LINEに戻る', 'style': 'secondary', 'target': None}
-                    ]
-                ), 200
-            else:
-                return render_template('result.html',
-                    title='公開エラー',
-                    icon='❌',
+                    title='システムエラー (500)',
+                    icon='⚠️',
                     heading_color='#f44336',
                     bg_color='#ffebee',
-                    message='記事の公開に失敗しました。',
-                    sub_message='しばらく待ってから再度お試しください。',
+                    message='システム内部でエラーが発生しました。',
+                    sub_message=str(e) + '\n\n' + error_trace,
                     url=None,
                     links=[{'href': 'javascript:history.back()', 'label': '← 戻る', 'style': 'outline', 'target': None}]
                 ), 500
