@@ -221,7 +221,7 @@ def markdown_to_portable_text(markdown: str) -> list:
             paragraph_lines.append(lines[i].strip())
             i += 1
 
-        text = " ".join(paragraph_lines)
+        text = "\n".join(paragraph_lines)
         blocks.append(_make_block(text))
 
     return blocks

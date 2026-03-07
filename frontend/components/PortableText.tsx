@@ -6,14 +6,27 @@ const components = {
   types: {
     image: ({ value }: { value: any }) => {
       const imageUrl = urlFor(value).width(800).url()
+
+      // Calculate aspect ratio from Sanity reference
+      let aspectRatio = '16/9' // fallback
+      if (value?.asset?._ref) {
+        // _ref format: image-Tb9Ew8CXIwaY6R1kjMvI0uRR-2000x3000-jpg
+        const match = value.asset._ref.match(/-(\d+)x(\d+)-/)
+        if (match) {
+          const width = parseInt(match[1], 10)
+          const height = parseInt(match[2], 10)
+          aspectRatio = `${width}/${height}`
+        }
+      }
+
       return (
         <figure className="my-6">
-          <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+          <div className="relative w-full" style={{ aspectRatio }}>
             <Image
               src={imageUrl}
               alt={value.alt || ''}
               fill
-              className="object-cover rounded"
+              className="object-contain rounded"
               sizes="(max-width: 768px) 100vw, 800px"
             />
           </div>
