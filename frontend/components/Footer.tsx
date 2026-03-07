@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import AdSlot from './AdSlot'
 
 const categories = [
   { title: 'アーティスト', slug: 'artist' },
@@ -43,16 +44,20 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* About */}
-          <div>
+          <div className="flex flex-col h-full">
             <h3
               className="text-white text-xl font-bold mb-3"
               style={{ fontFamily: "'Encode Sans Condensed', sans-serif" }}
             >
               K-TREND TIMES
             </h3>
-            <p className="text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed mb-6">
               韓国エンタメ・K-POP・ビューティー・ファッションの最新トレンドをお届けするニュースメディアです。
             </p>
+            {/* AdSense Slot in Footer */}
+            <div className="mt-auto md:pr-4">
+              <AdSlot slot="4560731053" format="auto" className="my-0 py-0 px-0 bg-transparent flex justify-start" style={{ minHeight: '100px' }} />
+            </div>
           </div>
 
           {/* Categories */}
