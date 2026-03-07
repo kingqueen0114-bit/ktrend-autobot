@@ -165,7 +165,7 @@ const components = {
       </blockquote>
     ),
     normal: ({ children }: { children?: React.ReactNode }) => (
-      <p className="text-base leading-relaxed text-[#292929] mb-4">{children}</p>
+      <p className="text-base whitespace-pre-line leading-relaxed text-[#292929] mb-4">{children}</p>
     ),
   },
 
