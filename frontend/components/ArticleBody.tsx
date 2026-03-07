@@ -16,9 +16,46 @@ export default function ArticleBody({ highlights, body, sourceUrl }: Props) {
   const [expanded, setExpanded] = useState(!hasHighlights)
 
   const isArrayBody = body && Array.isArray(body)
-  const middleIndex = isArrayBody ? Math.floor(body.length / 2) : -1
-  const bodyTop = isArrayBody && middleIndex > 0 ? body.slice(0, middleIndex) : body
-  const bodyBottom = isArrayBody && middleIndex > 0 ? body.slice(middleIndex) : null
+  let splitIndex = -1
+
+  if (isArrayBody && body.length >= 3) {
+    const mid = Math.floor(body.length / 2)
+
+    // Helper to check if it's safe to insert an ad between prevBlock and currBlock
+    const isSafeToSplit = (prevBlock: any, currBlock: any) => {
+      const isSplittingList = prevBlock?.listItem && currBlock?.listItem
+      const isAfterHeading = prevBlock?._type === 'block' && typeof prevBlock?.style === 'string' && prevBlock.style.startsWith('h')
+      return !isSplittingList && !isAfterHeading
+    }
+
+    // Forward search
+    for (let i = mid; i < body.length; i++) {
+      if (isSafeToSplit(body[i - 1], body[i])) {
+        splitIndex = i
+        break
+      }
+    }
+
+    // Backward search if forward failed
+    if (splitIndex === -1) {
+      for (let i = mid; i > 0; i--) {
+        if (isSafeToSplit(body[i - 1], body[i])) {
+          splitIndex = i
+          break
+        }
+      }
+    }
+
+    // Fallback if absolutely no safe spot is found
+    if (splitIndex === -1) {
+      splitIndex = mid
+    }
+  } else if (isArrayBody && body.length === 2) {
+    splitIndex = 1
+  }
+
+  const bodyTop = isArrayBody && splitIndex > 0 ? body.slice(0, splitIndex) : body
+  const bodyBottom = isArrayBody && splitIndex > 0 ? body.slice(splitIndex) : null
 
   return (
     <>
