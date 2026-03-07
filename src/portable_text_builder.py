@@ -169,15 +169,36 @@ def markdown_to_portable_text(markdown: str) -> list:
         if img_match:
             alt_text = img_match.group(1)
             img_url = img_match.group(2)
-            # Note: Image blocks need an asset reference.
-            # For now, create a placeholder — actual asset upload
-            # happens in storage_manager before saving to Sanity.
-            blocks.append({
-                "_type": "image",
-                "_key": _generate_key(),
-                "_sanity_placeholder_url": img_url,
-                "alt": alt_text,
-            })
+            
+            # Extract Sanity asset ref if it's a cdn.sanity.io URL
+            # Format: https://cdn.sanity.io/images/<project>/<dataset>/<id>-<w>x<h>.<ext>
+            # Resulting ref: image-<id>-<w>x<h>-<ext>
+            asset_ref = None
+            if "cdn.sanity.io/images/" in img_url:
+                filename = img_url.split("/")[-1]
+                if "?" in filename:
+                    filename = filename.split("?")[0]
+                if "." in filename:
+                    base_name, ext = filename.rsplit(".", 1)
+                    asset_ref = f"image-{base_name}-{ext}"
+            
+            if asset_ref:
+                blocks.append({
+                    "_type": "image",
+                    "_key": _generate_key(),
+                    "asset": {
+                        "_type": "reference",
+                        "_ref": asset_ref
+                    },
+                    "alt": alt_text,
+                })
+            else:
+                blocks.append({
+                    "_type": "image",
+                    "_key": _generate_key(),
+                    "_sanity_placeholder_url": img_url,
+                    "alt": alt_text,
+                })
             i += 1
             continue
 
