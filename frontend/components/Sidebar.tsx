@@ -48,7 +48,9 @@ export default async function Sidebar() {
       )}
 
       {/* Ad slot */}
-      <AdSlot slot="sidebar" className="min-h-[250px] md:min-h-[600px]" />
+      <div className="mt-8 w-full flex justify-center">
+        <AdSlot slot="sidebar" className="min-h-[250px] md:min-h-[600px]" />
+      </div>
     </aside>
   )
 }

@@ -38,13 +38,17 @@ export default function ArticleBody({ highlights, body, sourceUrl }: Props) {
       {/* Article body */}
       {expanded && (
         <>
-          <AdSlot slot="article-top" className="min-h-[250px] mb-6" />
+          <div className="mb-10 w-full flex justify-center">
+            <AdSlot slot="article-top" className="min-h-[150px] md:min-h-[250px]" />
+          </div>
 
           <div className="prose-custom">
             {body && <PortableText value={body} />}
           </div>
 
-          <AdSlot slot="article-bottom" className="min-h-[250px] mt-8" />
+          <div className="mt-12 w-full flex justify-center">
+            <AdSlot slot="article-bottom" className="min-h-[150px] md:min-h-[250px]" />
+          </div>
 
           {/* Source */}
           {sourceUrl && (
