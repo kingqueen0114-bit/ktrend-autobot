@@ -335,10 +335,19 @@
             font-style: italic;
         }
 
-        .article-body strong,
-        .article-body b {
-            font-weight: bold !important;
-            color: #111;
+        .article-body img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: block;
+        }
+
+        /* Enforce maximum boldness to override global K-Trend Times or browser resets */
+        .article-container .article-body strong,
+        .article-container .article-body b {
+            font-weight: 900 !important;
+            color: #000 !important;
         }
 
         .meta-preview {
@@ -627,7 +636,7 @@
         }
 
         // Initial preview update
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             updatePreview();
             updateTagPreview();
         });
@@ -664,25 +673,25 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.url) {
-                    const markdown = `\n![画像](${data.url})\n`;
-                    insertAtCursor('cms_body', markdown);
-                    updatePreview();
-                } else {
-                    alert('アップロード失敗: ' + (data.error || '不明なエラー'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('アップロードエラーが発生しました');
-            })
-            .finally(() => {
-                btn.textContent = originalText;
-                btn.disabled = false;
-                input.value = ''; // Reset input
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        const markdown = `\n![画像](${data.url})\n`;
+                        insertAtCursor('cms_body', markdown);
+                        updatePreview();
+                    } else {
+                        alert('アップロード失敗: ' + (data.error || '不明なエラー'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('アップロードエラーが発生しました');
+                })
+                .finally(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    input.value = ''; // Reset input
+                });
         }
 
         // (Legacy) Insert inline image by URL
