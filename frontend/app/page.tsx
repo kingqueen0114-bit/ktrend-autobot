@@ -28,7 +28,7 @@ const webSiteJsonLd = {
   },
 }
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const articles = await client.fetch(articlesQuery, { limit: 30 })

@@ -8,7 +8,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 import Sidebar from '@/components/Sidebar'
 import type { Metadata } from 'next'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 const SITE_NAME = 'K-TREND TIMES'
 

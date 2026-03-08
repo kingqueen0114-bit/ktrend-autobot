@@ -9,7 +9,7 @@ import Sidebar from '@/components/Sidebar'
 const SITE_NAME = 'K-TREND TIMES'
 const PER_PAGE = 12
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 type Props = {
   searchParams: Promise<{ page?: string }>

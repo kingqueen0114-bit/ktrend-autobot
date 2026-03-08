@@ -9,7 +9,7 @@ import Sidebar from '@/components/Sidebar'
 const SITE_NAME = 'K-TREND TIMES'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ slug: string }>

@@ -8,7 +8,7 @@ import AdSlot from '@/components/AdSlot'
 import { generateCategoryMetadata } from '@/lib/seo'
 import Sidebar from '@/components/Sidebar'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ slug: string }>

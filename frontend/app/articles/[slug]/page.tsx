@@ -12,7 +12,7 @@ import JsonLd from '@/components/JsonLd'
 import Sidebar from '@/components/Sidebar'
 import ArticleBody from '@/components/ArticleBody'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 
