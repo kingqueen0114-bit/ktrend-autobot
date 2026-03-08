@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
         <Header />
-        <main className="min-h-screen">
+        <main className="min-h-screen pagead-ignore">
           <SwipeNavigator>{children}</SwipeNavigator>
         </main>
         <Footer />
