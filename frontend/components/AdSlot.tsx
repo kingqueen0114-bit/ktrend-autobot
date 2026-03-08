@@ -37,11 +37,11 @@ export default function AdSlot({ slot, format = 'auto', style, className }: Prop
     <div className={`ad-container w-full overflow-hidden flex justify-center py-2 px-4 md:px-0 ${className || ''}`} style={style}>
       <ins
         className="adsbygoogle"
-        style={{ display: 'block', ...style }}
+        style={style?.height ? { display: 'inline-block', width: '100%', ...style } : { display: 'block', ...style }}
         data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID || ''}
         data-ad-slot={slot || 'xxxxxxxxx'}
-        data-ad-format={format}
-        data-full-width-responsive="true"
+        data-ad-format={style?.height ? undefined : format} // Disable auto format if forcing height
+        data-full-width-responsive={style?.height ? "false" : "true"}
       />
     </div>
   )
