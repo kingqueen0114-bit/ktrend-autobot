@@ -3,6 +3,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { client, urlFor } from '@/lib/sanity'
 import { articlesByCategoryQuery, categoriesQuery } from '@/lib/queries'
+import ArticleCard from '@/components/ArticleCard'
+import AdSlot from '@/components/AdSlot'
 import { generateCategoryMetadata } from '@/lib/seo'
 import Sidebar from '@/components/Sidebar'
 
@@ -77,54 +79,19 @@ export default async function CategoryPage({ params }: Props) {
 
               {/* Remaining articles: list style */}
               <div className="divide-y divide-gray-100">
-                {articles.slice(1).map((article: any) => (
-                  <Link
-                    key={article._id}
-                    href={`/articles/${article.slug.current}`}
-                    className="flex gap-4 py-4 group items-start"
-                  >
-                    <div className="relative w-[100px] h-[100px] md:w-[120px] md:h-[120px] flex-shrink-0 overflow-hidden rounded-lg">
-                      {article.mainImage ? (
-                        <Image
-                          src={urlFor(article.mainImage).width(320).height(320).url()}
-                          alt={article.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="160px"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-gray-200 rounded-lg" />
-                      )}
+                {articles.slice(1).map((article: any, index: number) => (
+                  <div key={article._id}>
+                    <div>
+                      <ArticleCard article={article} variant="list" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors">
-                        {article.title}
-                      </h3>
-                      {article.excerpt && (
-                        <p className="text-sm text-[#67737e] mt-1 line-clamp-2 hidden md:block">{article.excerpt}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {article.category && (
-                          <span
-                            className="text-xs text-white font-medium px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: article.category.color }}
-                          >
-                            {article.category.title}
-                          </span>
-                        )}
-                        <time className="text-xs text-[#67737e]">
-                          {article.publishedAt
-                            ? new Date(article.publishedAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
-                            : ''}
-                        </time>
-                        {article.artistTags && article.artistTags.length > 0 && article.artistTags.slice(0, 3).map((tag: string) => (
-                          <span key={tag} className="border border-[#292929]/50 text-[#292929] text-[10px] px-2 py-0.5 rounded-full">
-                            {tag}
-                          </span>
-                        ))}
+
+                    {/* Inject In-Feed Ad Every 5 Articles */}
+                    {(index + 1) % 5 === 0 && (
+                      <div className="border-b border-[#292929]/10 w-full flex justify-center items-center">
+                        <AdSlot slot="5161090936" format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" className="!py-0" />
                       </div>
-                    </div>
-                  </Link>
+                    )}
+                  </div>
                 ))}
               </div>
             </>

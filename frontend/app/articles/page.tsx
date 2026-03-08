@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { client } from '@/lib/sanity'
 import { articlesPaginatedQuery, articlesCountQuery } from '@/lib/queries'
 import ArticleCard from '@/components/ArticleCard'
+import AdSlot from '@/components/AdSlot'
 import Sidebar from '@/components/Sidebar'
 
 const SITE_NAME = 'K-TREND TIMES'
@@ -70,9 +71,18 @@ export default async function ArticlesPage({ searchParams }: Props) {
             <p className="text-[#67737e] text-center py-12">記事がありません</p>
           ) : (
             <div className="flex flex-col gap-0">
-              {articles.map((article: any) => (
-                <div key={article._id} className="border-b border-[#292929]/10 last:border-0">
-                  <ArticleCard article={article} variant="list" />
+              {articles.map((article: any, index: number) => (
+                <div key={article._id}>
+                  <div className="border-b border-[#292929]/10 last:border-0">
+                    <ArticleCard article={article} variant="list" />
+                  </div>
+
+                  {/* Inject In-Feed Ad Every 5 Articles */}
+                  {(index + 1) % 5 === 0 && (
+                    <div className="border-b border-[#292929]/10 w-full flex justify-center items-center">
+                      <AdSlot slot="5161090936" format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" className="!py-0" />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -110,8 +120,8 @@ export default async function ArticlesPage({ searchParams }: Props) {
                     key={num}
                     href={`/articles?page=${num}`}
                     className={`w-10 h-10 flex items-center justify-center rounded text-sm font-medium transition-colors ${num === currentPage
-                        ? 'bg-[#292929] text-white'
-                        : 'border border-gray-300 text-[#292929] hover:border-[#292929] hover:text-[#292929]'
+                      ? 'bg-[#292929] text-white'
+                      : 'border border-gray-300 text-[#292929] hover:border-[#292929] hover:text-[#292929]'
                       }`}
                   >
                     {num}
