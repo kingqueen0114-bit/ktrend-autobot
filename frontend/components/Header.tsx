@@ -145,6 +145,38 @@ export default function Header({ tickerItems }: HeaderProps) {
     return isHome ? '#FC4848' : '#FC4848' // Default fallback
   })()
 
+  // Auto-scroll the mobile tabs container to show the active tab
+  useEffect(() => {
+    if (!mobileTabsRef.current) return
+    const container = mobileTabsRef.current
+
+    // Slight delay to ensure React has applied the data-active="true" attribute
+    const timeoutId = setTimeout(() => {
+      // Find the currently active tab using the data attribute
+      // In articles, the "最新" tab is hardcoded to active="true" as its baseline,
+      // but if an article has a category, we want to scroll to that category tab instead.
+      const activeTabs = container.querySelectorAll<HTMLElement>('[data-active="true"]')
+
+      // If multiple are active (e.g. baseline "最新" + "トレンド"), prefer the category tab
+      const targetTab = activeTabs.length > 1 ? activeTabs[1] : activeTabs[0]
+
+      if (targetTab) {
+        const containerRect = container.getBoundingClientRect()
+        const tabRect = targetTab.getBoundingClientRect()
+
+        // Calculate the ideal scroll position to center the tab
+        const scrollLeft = targetTab.offsetLeft - (containerRect.width / 2) + (tabRect.width / 2)
+
+        container.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth'
+        })
+      }
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [pathname, articleCategoryAlias])
+
   return (
     <>
       {/* Ticker animation keyframes */}
