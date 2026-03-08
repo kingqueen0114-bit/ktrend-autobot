@@ -182,12 +182,58 @@ def view_draft(request):
                 links=[{'href': 'https://line.me/R/', 'label': '💬 LINEに戻る', 'style': 'secondary', 'target': None}]
             ), 200
 
+        if action_type == 'delete':
+            try:
+                # 1. Firestoreから削除
+                storage.delete_draft(draft_id)
+                # 2. Sanityから削除 (公開済みの場合)
+                sanity_draft_id = draft.get('sanity_draft_id') or draft.get('sanity_id')
+                if sanity_draft_id:
+                    plain_id = sanity_draft_id.replace('drafts.', '')
+                    try:
+                        import src.sanity_client as sanity_client
+                        sanity_client.delete(plain_id)
+                        sanity_client.delete(f"drafts.{plain_id}")
+                    except Exception as e:
+                        logger.warning(f"Sanity削除エラー: {plain_id} - {e}")
+                
+                return render_template('result.html',
+                    title='削除完了',
+                    icon='🗑️',
+                    heading_color='#292929',
+                    bg_color='#f5f5f5',
+                    message='記事を削除しました。',
+                    sub_message='サイトからも完全に削除されました。',
+                    url=None,
+                    links=[{'href': 'https://line.me/R/', 'label': '💬 LINEに戻る', 'style': 'secondary', 'target': None}]
+                ), 200
+            except Exception as e:
+                log_error("DELETE_CRASH", str(e))
+                return render_template('result.html',
+                    title='削除エラー',
+                    icon='⚠️',
+                    heading_color='#f44336',
+                    bg_color='#ffebee',
+                    message='削除中にエラーが発生しました。',
+                    sub_message=str(e),
+                    url=None,
+                    links=[{'href': 'javascript:history.back()', 'label': '← 戻る', 'style': 'outline', 'target': None}]
+                ), 500
+
         draft['status'] = 'approved'
         storage.save_draft(draft, draft_id)
 
         # 4. Publish to Sanity if CMS is approved
         if 'approve_cms' in form:
-            sanity_draft_id = draft.get('sanity_draft_id') or draft_id
+            # Prevent duplicates by ensuring we use the already established Sanity ID if it exists
+            sanity_draft_id = draft.get('sanity_draft_id') or draft.get('sanity_id') or draft_id
+            
+            # Formから送られてこないAI生成データ(自動生成されたハイライトなど)を復元
+            if 'highlights' in draft:
+                cms_content['highlights'] = draft['highlights']
+            if 'quality_score' in draft:
+                cms_content['quality_score'] = draft['quality_score']
+                
             try:
                 result = storage.publish_to_sanity(cms_content, img_url, category=new_category, artist_tags=artist_tags, draft_id=sanity_draft_id)
                 if result:
