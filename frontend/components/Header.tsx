@@ -184,7 +184,7 @@ export default function Header({ tickerItems }: HeaderProps) {
             {/* Header Ad Space */}
             <div className="flex-1 mx-3 md:mx-6 flex items-center justify-end overflow-hidden">
               <div className="w-full max-w-[320px] md:max-w-[728px] h-[40px] md:h-[90px]">
-                <AdSlot slot="header_slot" className="h-full !py-0" style={{ height: '100%', minHeight: '40px' }} />
+                <AdSlot slot="1616268029" className="h-full !py-0" style={{ height: '100%', minHeight: '40px' }} />
               </div>
             </div>
             {/* Search icon button */}
