@@ -4,10 +4,11 @@ import { articleCategorySlugQuery } from '@/lib/queries'
 
 export async function GET(
     request: Request,
-    { params }: { params: { slug: string } }
+    { params }: { params: Promise<{ slug: string }> }
 ) {
     try {
-        const slug = params.slug
+        const resolvedParams = await params
+        const slug = resolvedParams.slug
         if (!slug) {
             return NextResponse.json({ categorySlug: null }, { status: 400 })
         }
