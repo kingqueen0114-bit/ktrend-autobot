@@ -81,12 +81,12 @@ export default async function CategoryPage({ params }: Props) {
                   <Link
                     key={article._id}
                     href={`/articles/${article.slug.current}`}
-                    className="flex gap-4 py-4 group"
+                    className="flex gap-4 py-4 group items-start"
                   >
-                    <div className="relative w-[100px] md:w-[120px] aspect-square flex-shrink-0 overflow-hidden rounded-lg">
+                    <div className="relative w-[100px] h-[100px] md:w-[120px] md:h-[120px] flex-shrink-0 overflow-hidden rounded-lg">
                       {article.mainImage ? (
                         <Image
-                          src={urlFor(article.mainImage).width(320).height(200).url()}
+                          src={urlFor(article.mainImage).width(320).height(320).url()}
                           alt={article.title}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
