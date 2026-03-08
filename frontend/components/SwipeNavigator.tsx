@@ -12,13 +12,13 @@ import {
 
 const CATEGORIES = [
   { slug: '', path: '/' },
+  { slug: 'trend', path: '/category/trend' },
+  { slug: 'event', path: '/category/event' },
+  { slug: 'gourmet', path: '/category/gourmet' },
   { slug: 'artist', path: '/category/artist' },
+  { slug: 'koreantrip', path: '/category/koreantrip' },
   { slug: 'beauty', path: '/category/beauty' },
   { slug: 'fashion', path: '/category/fashion' },
-  { slug: 'gourmet', path: '/category/gourmet' },
-  { slug: 'koreantrip', path: '/category/koreantrip' },
-  { slug: 'event', path: '/category/event' },
-  { slug: 'trend', path: '/category/trend' },
   { slug: 'lifestyle', path: '/category/lifestyle' },
 ]
 
