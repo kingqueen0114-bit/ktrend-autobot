@@ -38,7 +38,7 @@ export default function AdSlot({ slot, format = 'auto', style, className, 'data-
     <div className={`ad-container w-full overflow-hidden flex justify-center py-2 px-4 md:px-0 ${className || ''}`} style={style}>
       <ins
         className={`adsbygoogle ${className || ''}`}
-        style={{ display: 'block', ...style }}
+        style={style}
         data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID}
         data-ad-slot={slot}
         data-ad-format={format}
