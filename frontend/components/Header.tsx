@@ -183,8 +183,8 @@ export default function Header({ tickerItems }: HeaderProps) {
 
             {/* Header Ad Space */}
             <div className="flex-1 mx-3 md:mx-6 flex items-center justify-end overflow-hidden">
-              <div className="w-full max-w-[320px] md:max-w-[728px] min-h-[40px] md:min-h-[90px] flex items-center justify-center">
-                <AdSlot slot="1616268029" className="!py-0" format="horizontal" />
+              <div className="w-full max-w-[320px] md:max-w-[728px] h-[40px] md:h-[90px] flex items-center justify-center">
+                <AdSlot slot="1616268029" className="!py-0" format="horizontal" style={{ height: '40px', minWidth: '280px' }} />
               </div>
             </div>
             {/* Search icon button */}
