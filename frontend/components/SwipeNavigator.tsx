@@ -58,7 +58,7 @@ export default function SwipeNavigator({ children }: { children: ReactNode }) {
   }, [])
 
   const getCurrentIndex = useCallback(() => {
-    if (pathname === '/') return 0
+    if (pathname === '/' || pathname.startsWith('/articles')) return 0
     const match = pathname.match(/^\/category\/(.+)$/)
     if (match) {
       const idx = CATEGORIES.findIndex((c) => c.slug === match[1])
