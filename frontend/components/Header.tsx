@@ -30,8 +30,6 @@ export default function Header({ tickerItems }: HeaderProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement>(null)
   const mobileTabsRef = useRef<HTMLDivElement>(null)
-  const navTouchStart = useRef<{ x: number; y: number } | null>(null)
-  const navSwipeActive = useRef(false)
 
   const tickerTexts = tickerItems && tickerItems.length > 0
     ? tickerItems
@@ -98,66 +96,6 @@ export default function Header({ tickerItems }: HeaderProps) {
   const getCurrentPathIndex = useCallback(() => {
     return ALL_PATHS.indexOf(pathname)
   }, [pathname])
-
-  const handleNavTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0]
-    // Ignore touches in edge zones (< 20px from screen edge)
-    if (touch.clientX < 20 || touch.clientX > window.innerWidth - 20) {
-      navTouchStart.current = null
-      return
-    }
-    navTouchStart.current = { x: touch.clientX, y: touch.clientY }
-    navSwipeActive.current = false
-  }, [])
-
-  const handleNavTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!navTouchStart.current) return
-    const touch = e.changedTouches[0]
-    const dx = touch.clientX - navTouchStart.current.x
-    const dy = touch.clientY - navTouchStart.current.y
-    navTouchStart.current = null
-    navSwipeActive.current = false
-
-    // Only trigger for decisive horizontal swipes
-    if (Math.abs(dx) > 50 && Math.abs(dy) < 30) {
-      const currentIndex = getCurrentPathIndex()
-      if (currentIndex === -1) return
-
-      if (dx < 0 && currentIndex < ALL_PATHS.length - 1) {
-        // Swipe left → next category
-        router.push(ALL_PATHS[currentIndex + 1])
-      } else if (dx > 0 && currentIndex > 0) {
-        // Swipe right → previous category
-        router.push(ALL_PATHS[currentIndex - 1])
-      }
-    }
-  }, [getCurrentPathIndex, router])
-
-  // Attach passive:false touchmove listener to prevent tab scroll during swipe
-  useEffect(() => {
-    const container = mobileTabsRef.current
-    if (!container) return
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!navTouchStart.current) return
-      const touch = e.touches[0]
-      const dx = Math.abs(touch.clientX - navTouchStart.current.x)
-      const dy = Math.abs(touch.clientY - navTouchStart.current.y)
-
-      // Once we detect a decisive horizontal swipe, prevent default to stop tab scrolling
-      if (dx > 10 && dy < 30) {
-        navSwipeActive.current = true
-      }
-      if (navSwipeActive.current) {
-        e.preventDefault()
-      }
-    }
-
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    return () => {
-      container.removeEventListener('touchmove', handleTouchMove)
-    }
-  }, [])
 
   const isActiveCategory = (slug: string) => {
     return pathname === '/category/' + slug
@@ -320,9 +258,8 @@ export default function Header({ tickerItems }: HeaderProps) {
           {/* Mobile: SmartNews-style horizontal scrollable tabs */}
           <div
             ref={mobileTabsRef}
-            className="md:hidden flex flex-nowrap gap-0 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
-            onTouchStart={handleNavTouchStart}
-            onTouchEnd={handleNavTouchEnd}
+            className="md:hidden flex flex-nowrap gap-0 overflow-x-auto scrollbar-hide snap-x snap-mandatory overscroll-behavior-x-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <Link
               href="/"
