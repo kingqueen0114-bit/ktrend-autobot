@@ -86,7 +86,7 @@ export default function ArticleBody({ highlights, body, sourceUrl }: Props) {
             {bodyBottom && bodyBottom.length > 0 && (
               <>
                 <div className="my-10 w-full flex justify-center">
-                  <AdSlot slot="9279135629" style={{ minHeight: '280px', height: '280px' }} />
+                  <AdSlot slot="9279135629" />
                 </div>
                 <PortableText value={bodyBottom} />
               </>
@@ -94,7 +94,7 @@ export default function ArticleBody({ highlights, body, sourceUrl }: Props) {
           </div>
 
           <div className="mt-12 w-full flex justify-center">
-            <AdSlot slot="5544234317" style={{ minHeight: '280px', height: '280px' }} />
+            <AdSlot slot="5544234317" />
           </div>
 
           {/* Source */}
