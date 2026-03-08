@@ -12,7 +12,7 @@ type Props = {
 export default function AdSlot({ slot, format = 'auto', style, className }: Props) {
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ADSENSE_ID) {
         const adsbygoogle = (window as any).adsbygoogle || []
         adsbygoogle.push({})
       }
@@ -21,13 +21,25 @@ export default function AdSlot({ slot, format = 'auto', style, className }: Prop
     }
   }, [])
 
+  // Show placeholder in development or if ad client ID is missing
+  if (process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_ADSENSE_ID) {
+    return (
+      <div className={`ad-container w-full overflow-hidden flex justify-center py-2 px-4 md:px-0 ${className || ''}`} style={style}>
+        <div className="w-full h-full min-h-[50px] bg-gray-50 flex flex-col items-center justify-center border border-gray-200 rounded text-[#9ca3af] relative">
+          <span className="text-[10px] absolute top-1 left-2">Sponsor</span>
+          <span className="text-sm font-medium">Ad Space</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className={`ad-container w-full overflow-hidden flex justify-center py-6 px-4 md:px-0 ${className || 'my-6'}`} style={style}>
+    <div className={`ad-container w-full overflow-hidden flex justify-center py-2 px-4 md:px-0 ${className || ''}`} style={style}>
       <ins
         className="adsbygoogle"
-        style={{ display: 'block' }}
+        style={{ display: 'block', ...style }}
         data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID || ''}
-        data-ad-slot={slot}
+        data-ad-slot={slot || 'xxxxxxxxx'}
         data-ad-format={format}
         data-full-width-responsive="true"
       />

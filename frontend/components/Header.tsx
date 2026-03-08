@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import AdSlot from './AdSlot'
 
 const categories = [
   { title: 'トレンド', slug: 'trend', color: '#FA9101' },
@@ -169,16 +170,23 @@ export default function Header({ tickerItems }: HeaderProps) {
         {/* Logo + Search icon */}
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-block flex-shrink-0">
               <Image
                 src="/logo.png"
                 alt="K-TREND TIMES"
                 width={280}
                 height={40}
-                className="h-[32px] md:h-[40px] w-auto"
+                className="h-[28px] md:h-[40px] w-auto" // Slightly smaller on mobile to fit the ad
                 priority
               />
             </Link>
+
+            {/* Header Ad Space */}
+            <div className="flex-1 mx-3 md:mx-6 flex items-center justify-end overflow-hidden">
+              <div className="w-full max-w-[320px] md:max-w-[728px] h-[40px] md:h-[90px]">
+                <AdSlot slot="header_slot" className="h-full !py-0" style={{ height: '100%', minHeight: '40px' }} />
+              </div>
+            </div>
             {/* Search icon button */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
