@@ -1,33 +1,29 @@
-import {revalidatePath} from 'next/cache'
-import {NextRequest, NextResponse} from 'next/server'
-import {parseBody} from 'next-sanity/webhook'
+import { revalidatePath } from 'next/cache'
+import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from 'next-sanity/webhook'
 
 export async function POST(request: NextRequest) {
   try {
-    const {isValidSignature, body} = await parseBody<{
+    const { isValidSignature, body } = await parseBody<{
       _type: string
-      slug?: {current?: string}
+      slug?: { current?: string }
     }>(request, process.env.SANITY_WEBHOOK_SECRET)
 
     if (!isValidSignature) {
-      return NextResponse.json({message: 'Invalid signature'}, {status: 401})
+      return NextResponse.json({ message: 'Invalid signature' }, { status: 401 })
     }
 
     if (!body?._type) {
-      return NextResponse.json({message: 'Missing body type'}, {status: 400})
+      return NextResponse.json({ message: 'Missing body type' }, { status: 400 })
     }
 
-    // Revalidate specific article if slug is provided
-    if (body._type === 'article' && body.slug?.current) {
-      revalidatePath(`/articles/${body.slug.current}`)
-    }
+    // Since deleting/publishing an article shifts the entire site's feed pagination,
+    // and delete webhook payloads often lack the specific 'slug', we execute a
+    // full layout revalidation to guarantee 100% frontend state consistency.
+    revalidatePath('/', 'layout')
 
-    // Also revalidate the homepage and category pages
-    revalidatePath('/')
-    revalidatePath('/category/[slug]', 'page')
-
-    return NextResponse.json({revalidated: true, now: Date.now()})
+    return NextResponse.json({ revalidated: true, now: Date.now() })
   } catch (err) {
-    return NextResponse.json({message: 'Error revalidating'}, {status: 500})
+    return NextResponse.json({ message: 'Error revalidating' }, { status: 500 })
   }
 }
