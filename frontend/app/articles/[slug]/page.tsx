@@ -1,11 +1,11 @@
-import {cache} from 'react'
-import {notFound} from 'next/navigation'
+import { cache } from 'react'
+import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import {draftMode} from 'next/headers'
-import {client, getPreviewClient, urlFor} from '@/lib/sanity'
-import {articleBySlugQuery, relatedArticlesQuery, adjacentArticlesQuery, recommendedArticlesQuery} from '@/lib/queries'
-import {generateArticleMetadata, articleJsonLd} from '@/lib/seo'
+import { draftMode } from 'next/headers'
+import { client, getPreviewClient, urlFor } from '@/lib/sanity'
+import { articleBySlugQuery, relatedArticlesQuery, adjacentArticlesQuery, recommendedArticlesQuery } from '@/lib/queries'
+import { generateArticleMetadata, articleJsonLd } from '@/lib/seo'
 import CategoryBadge from '@/components/CategoryBadge'
 import ArticleCard from '@/components/ArticleCard'
 import JsonLd from '@/components/JsonLd'
@@ -17,36 +17,36 @@ export const revalidate = 60
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 
 type Props = {
-  params: Promise<{slug: string}>
+  params: Promise<{ slug: string }>
 }
 
 const getArticle = cache(async (slug: string, isPreview: boolean) => {
   const sanityClient = isPreview ? getPreviewClient() : client
-  return sanityClient.fetch(articleBySlugQuery, {slug})
+  return sanityClient.fetch(articleBySlugQuery, { slug })
 })
 
-export async function generateMetadata({params}: Props) {
-  const {slug} = await params
+export async function generateMetadata({ params }: Props) {
+  const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
   const article = await getArticle(decodedSlug, false)
   if (!article) return {}
   return generateArticleMetadata(article)
 }
 
-function breadcrumbJsonLd(article: {title: string; slug: {current: string}; category?: {title: string; slug?: {current: string}}}) {
+function breadcrumbJsonLd(article: { title: string; slug: { current: string }; category?: { title: string; slug?: { current: string } } }) {
   const items: Array<{
     '@type': string
     position: number
     name: string
     item?: string
   }> = [
-    {
-      '@type': 'ListItem',
-      position: 1,
-      name: 'ホーム',
-      item: SITE_URL,
-    },
-  ]
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'ホーム',
+        item: SITE_URL,
+      },
+    ]
 
   if (article.category?.slug?.current) {
     items.push({
@@ -70,10 +70,10 @@ function breadcrumbJsonLd(article: {title: string; slug: {current: string}; cate
   }
 }
 
-export default async function ArticlePage({params}: Props) {
-  const {slug} = await params
+export default async function ArticlePage({ params }: Props) {
+  const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
-  const {isEnabled: isPreview} = await draftMode()
+  const { isEnabled: isPreview } = await draftMode()
 
   const article = await getArticle(decodedSlug, isPreview)
 
@@ -81,16 +81,16 @@ export default async function ArticlePage({params}: Props) {
 
   const relatedArticles = article.category?.slug?.current
     ? await client.fetch(relatedArticlesQuery, {
-        categorySlug: article.category.slug.current,
-        currentId: article._id,
-      })
+      categorySlug: article.category.slug.current,
+      currentId: article._id,
+    })
     : []
 
   const adjacentArticles = article.publishedAt
     ? await client.fetch(adjacentArticlesQuery, {
-        publishedAt: article.publishedAt,
-      })
-    : {prev: null, next: null}
+      publishedAt: article.publishedAt,
+    })
+    : { prev: null, next: null }
 
   const recommendedArticles = await client.fetch(recommendedArticlesQuery, {
     currentId: article._id,
@@ -102,10 +102,10 @@ export default async function ArticlePage({params}: Props) {
 
   const date = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString('ja-JP', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
     : ''
 
   const articleUrl = `${SITE_URL}/articles/${article.slug.current}`
@@ -183,7 +183,7 @@ export default async function ArticlePage({params}: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded text-white text-sm font-medium transition-opacity hover:opacity-80"
-                style={{backgroundColor: '#000'}}
+                style={{ backgroundColor: '#000' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -197,7 +197,7 @@ export default async function ArticlePage({params}: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded text-white text-sm font-medium transition-opacity hover:opacity-80"
-                style={{backgroundColor: '#06C755'}}
+                style={{ backgroundColor: '#06C755' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .348-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .349-.281.63-.63.63h-2.386c-.345 0-.627-.281-.627-.63V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.63-.631.63-.346 0-.626-.286-.626-.63V8.108c0-.271.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.63-.631.63-.345 0-.627-.286-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.63H4.917c-.345 0-.63-.286-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .349-.281.63-.629.63M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
@@ -211,7 +211,7 @@ export default async function ArticlePage({params}: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded text-white text-sm font-medium transition-opacity hover:opacity-80"
-                style={{backgroundColor: '#00A4DE'}}
+                style={{ backgroundColor: '#00A4DE' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M20.47 0C22.42 0 24 1.58 24 3.53v16.94c0 1.95-1.58 3.53-3.53 3.53H3.53C1.58 24 0 22.42 0 20.47V3.53C0 1.58 1.58 0 3.53 0h16.94zm-3.705 14.47c-.78 0-1.41.63-1.41 1.41s.63 1.414 1.41 1.414 1.41-.634 1.41-1.414-.63-1.41-1.41-1.41zm.255-9.09h-2.1v8.82h2.1V5.38zm-5.016 5.67c-.72-.36-1.21-.96-1.21-1.89 0-1.8 1.41-2.55 3.03-2.55h3.45v8.82h-3.63c-1.74 0-3.18-.78-3.18-2.67 0-1.17.63-1.98 1.54-2.31v-.03zm1.83.63c-1.02 0-1.59.51-1.59 1.32 0 .78.51 1.26 1.53 1.26h1.38v-2.58h-1.32zm-.15-3.93c-.84 0-1.38.45-1.38 1.17 0 .69.48 1.17 1.38 1.17h1.17V7.75h-1.17z" />
@@ -247,6 +247,69 @@ export default async function ArticlePage({params}: Props) {
               body={article.body}
               sourceUrl={article.sourceUrl}
             />
+
+            {/* Sources / References (E-E-A-T) */}
+            {article.sources && article.sources.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <h3 className="text-sm font-bold text-[#67737e] mb-3 flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path>
+                  </svg>
+                  参考・引用元
+                </h3>
+                <ul className="space-y-2">
+                  {article.sources.map((source: any, idx: number) => (
+                    <li key={idx} className="text-sm">
+                      {source.url ? (
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="text-[#00A4DE] hover:underline break-words"
+                        >
+                          {source.title}
+                        </a>
+                      ) : (
+                        <span className="text-[#292929]">{source.title}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Author Card (E-E-A-T) */}
+            {article.author && (
+              <div className="mt-8 p-6 bg-gray-50 rounded-xl flex flex-col sm:flex-row gap-4 items-start border border-gray-100">
+                {article.author.image && (
+                  <div className="shrink-0 relative w-16 h-16 rounded-full overflow-hidden shadow-sm">
+                    <Image
+                      src={urlFor(article.author.image).width(128).height(128).url()}
+                      alt={article.author.name}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <div className="mb-1">
+                    <span className="text-xs font-bold px-2 py-0.5 bg-[#292929] text-white rounded mr-2 align-middle">
+                      {article.author.role || 'Writer'}
+                    </span>
+                    <span className="text-lg font-bold text-[#292929] align-middle">
+                      {article.author.name}
+                    </span>
+                  </div>
+                  {article.author.bio && (
+                    <p className="text-sm text-[#67737e] mt-2 leading-relaxed">
+                      {article.author.bio}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Artist Tags */}
             {article.artistTags && article.artistTags.length > 0 && (

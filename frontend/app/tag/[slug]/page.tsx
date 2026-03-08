@@ -1,8 +1,8 @@
-import {notFound} from 'next/navigation'
-import type {Metadata} from 'next'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import {client} from '@/lib/sanity'
-import {articlesByTagQuery, tagBySlugQuery, tagArticlesCountQuery} from '@/lib/queries'
+import { client } from '@/lib/sanity'
+import { articlesByTagQuery, tagBySlugQuery, tagArticlesCountQuery } from '@/lib/queries'
 import ArticleCard from '@/components/ArticleCard'
 import Sidebar from '@/components/Sidebar'
 
@@ -12,21 +12,24 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 export const revalidate = 60
 
 type Props = {
-  params: Promise<{slug: string}>
+  params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({params}: Props): Promise<Metadata> {
-  const {slug} = await params
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
   const [tag, count] = await Promise.all([
-    client.fetch(tagBySlugQuery, {tagSlug: decodedSlug}),
-    client.fetch(tagArticlesCountQuery, {tagSlug: decodedSlug}),
+    client.fetch(tagBySlugQuery, { tagSlug: decodedSlug }),
+    client.fetch(tagArticlesCountQuery, { tagSlug: decodedSlug }),
   ])
   if (!tag) return {}
   const description = `「${tag.title}」タグの最新記事${count > 0 ? `${count}件` : ''}一覧。${tag.title}に関する韓国トレンド・エンタメニュースをお届けします。`
+  const isJunkTag = /^admin$/i.test(decodedSlug) || /^\d+$/.test(decodedSlug)
+
   return {
     title: `${tag.title} | ${SITE_NAME}`,
     description,
+    robots: isJunkTag ? { index: false, follow: false } : undefined,
     openGraph: {
       title: `${tag.title} | ${SITE_NAME}`,
       description,
@@ -37,13 +40,13 @@ export async function generateMetadata({params}: Props): Promise<Metadata> {
   }
 }
 
-export default async function TagPage({params}: Props) {
-  const {slug} = await params
+export default async function TagPage({ params }: Props) {
+  const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
 
   const [tag, articles] = await Promise.all([
-    client.fetch(tagBySlugQuery, {tagSlug: decodedSlug}),
-    client.fetch(articlesByTagQuery, {tagSlug: decodedSlug, limit: 20}),
+    client.fetch(tagBySlugQuery, { tagSlug: decodedSlug }),
+    client.fetch(articlesByTagQuery, { tagSlug: decodedSlug, limit: 20 }),
   ])
 
   if (!tag) notFound()

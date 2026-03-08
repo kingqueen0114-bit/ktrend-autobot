@@ -82,6 +82,11 @@ export default function Footer() {
             <h4 className="text-white text-sm font-bold mb-3 uppercase tracking-wider">リンク</h4>
             <ul className="space-y-1.5">
               <li>
+                <Link href="/about" className="text-sm hover:text-white transition-colors">
+                  運営者情報
+                </Link>
+              </li>
+              <li>
                 <Link href="/sitemap.xml" className="text-sm hover:text-white transition-colors">
                   サイトマップ
                 </Link>

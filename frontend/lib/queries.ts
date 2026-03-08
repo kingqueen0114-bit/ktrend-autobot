@@ -1,4 +1,4 @@
-import {groq} from 'next-sanity'
+import { groq } from 'next-sanity'
 
 // 記事一覧（トップページ・カテゴリページ用）
 export const articlesQuery = groq`
@@ -35,14 +35,29 @@ export const articleBySlugQuery = groq`
     _id,
     title,
     slug,
-    publishedAt,
     body,
     excerpt,
     mainImage,
     imageCredit,
+    publishedAt,
     seo,
-    "category": category->{title, slug, color},
-    "tags": tags[]->{title, slug},
+    category->{
+      title,
+      slug,
+      color
+    },
+    author->{
+      name,
+      slug,
+      role,
+      image,
+      bio
+    },
+    sources,
+    tags[]->{
+      title,
+      slug
+    },
     artistTags,
     highlights,
     qualityScore,

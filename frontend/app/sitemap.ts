@@ -24,7 +24,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  const artistTagUrls = (artistTags || []).map((tag: string) => ({
+  const validArtistTags = (artistTags || []).filter((tag: string) => {
+    return !/^admin$/i.test(tag) && !/^\d+$/.test(tag)
+  })
+
+  const artistTagUrls = validArtistTags.map((tag: string) => ({
     url: `${SITE_URL}/artist/${encodeURIComponent(tag)}`,
     changeFrequency: 'weekly' as const,
     priority: 0.5,

@@ -21,9 +21,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const decodedTag = decodeURIComponent(tag)
   const count = await client.fetch(artistTagArticlesCountQuery, { artistTag: decodedTag })
   const description = `「${decodedTag}」の最新ニュース${count > 0 ? `・記事${count}件` : ''}。${decodedTag}に関する韓国エンタメ・K-POPトレンド情報をお届けします。`
+  const isJunkTag = /^admin$/i.test(decodedTag) || /^\d+$/.test(decodedTag)
+
   return {
     title: `${decodedTag}の記事一覧 | ${SITE_NAME}`,
     description,
+    robots: isJunkTag ? { index: false, follow: false } : undefined,
     openGraph: {
       title: `${decodedTag}の記事一覧 | ${SITE_NAME}`,
       description,

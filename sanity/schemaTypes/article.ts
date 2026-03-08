@@ -1,4 +1,4 @@
-import {defineField, defineType} from 'sanity'
+import { defineField, defineType } from 'sanity'
 
 export default defineType({
   name: 'article',
@@ -15,7 +15,7 @@ export default defineType({
       name: 'slug',
       title: 'スラッグ',
       type: 'slug',
-      options: {source: 'title', maxLength: 200},
+      options: { source: 'title', maxLength: 200 },
       validation: (Rule) => Rule.required(),
     }),
     defineField({
@@ -31,15 +31,15 @@ export default defineType({
         {
           type: 'block',
           styles: [
-            {title: '通常', value: 'normal'},
-            {title: '見出し2', value: 'h2'},
-            {title: '見出し3', value: 'h3'},
-            {title: '引用', value: 'blockquote'},
+            { title: '通常', value: 'normal' },
+            { title: '見出し2', value: 'h2' },
+            { title: '見出し3', value: 'h3' },
+            { title: '引用', value: 'blockquote' },
           ],
           marks: {
             decorators: [
-              {title: '太字', value: 'strong'},
-              {title: '斜体', value: 'em'},
+              { title: '太字', value: 'strong' },
+              { title: '斜体', value: 'em' },
             ],
             annotations: [
               {
@@ -47,22 +47,22 @@ export default defineType({
                 type: 'object',
                 title: 'リンク',
                 fields: [
-                  {name: 'href', type: 'url', title: 'URL'},
+                  { name: 'href', type: 'url', title: 'URL' },
                 ],
               },
             ],
           },
           lists: [
-            {title: '箇条書き', value: 'bullet'},
-            {title: '番号付き', value: 'number'},
+            { title: '箇条書き', value: 'bullet' },
+            { title: '番号付き', value: 'number' },
           ],
         },
         {
           type: 'image',
-          options: {hotspot: true},
+          options: { hotspot: true },
           fields: [
-            {name: 'alt', type: 'string', title: '代替テキスト'},
-            {name: 'caption', type: 'string', title: 'キャプション'},
+            { name: 'alt', type: 'string', title: '代替テキスト' },
+            { name: 'caption', type: 'string', title: 'キャプション' },
           ],
         },
       ],
@@ -77,9 +77,9 @@ export default defineType({
       name: 'mainImage',
       title: 'アイキャッチ画像',
       type: 'image',
-      options: {hotspot: true},
+      options: { hotspot: true },
       fields: [
-        {name: 'alt', type: 'string', title: '代替テキスト'},
+        { name: 'alt', type: 'string', title: '代替テキスト' },
       ],
     }),
     defineField({
@@ -92,36 +92,73 @@ export default defineType({
       title: 'SEO',
       type: 'object',
       fields: [
-        {name: 'metaTitle', type: 'string', title: 'メタタイトル'},
-        {name: 'metaDescription', type: 'text', title: 'メタディスクリプション', rows: 3},
-        {name: 'ogImage', type: 'image', title: 'OG画像'},
+        { name: 'metaTitle', type: 'string', title: 'メタタイトル' },
+        { name: 'metaDescription', type: 'text', title: 'メタディスクリプション', rows: 3 },
+        { name: 'ogImage', type: 'image', title: 'OG画像' },
       ],
+    }),
+    defineField({
+      name: 'author',
+      title: '著者 / 編集者',
+      type: 'reference',
+      to: [{ type: 'author' }],
+      description: '記事を作成・監修した担当者（E-E-A-T対応）',
+    }),
+    defineField({
+      name: 'sources',
+      title: '参考・引用元 (E-E-A-T SOURCES)',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {
+              name: 'title',
+              title: '参照元タイトル',
+              type: 'string',
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: 'url',
+              title: '参照元URL',
+              type: 'url',
+            },
+          ],
+          preview: {
+            select: {
+              title: 'title',
+              subtitle: 'url',
+            },
+          },
+        },
+      ],
+      description: 'AIと読者に対し「どこから情報を得たか」を示すためのリスト。',
     }),
     defineField({
       name: 'category',
       title: 'カテゴリ',
       type: 'reference',
-      to: [{type: 'category'}],
+      to: [{ type: 'category' }],
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'tags',
       title: 'タグ',
       type: 'array',
-      of: [{type: 'reference', to: [{type: 'tag'}]}],
+      of: [{ type: 'reference', to: [{ type: 'tag' }] }],
     }),
     defineField({
       name: 'artistTags',
       title: 'アーティストタグ',
       type: 'array',
-      of: [{type: 'string'}],
-      options: {layout: 'tags'},
+      of: [{ type: 'string' }],
+      options: { layout: 'tags' },
     }),
     defineField({
       name: 'highlights',
       title: 'ハイライト（CHECKPOINT）',
       type: 'array',
-      of: [{type: 'string'}],
+      of: [{ type: 'string' }],
       description: 'AI生成の記事要点リスト。記事上部にCHECKPOINTとして表示されます。',
     }),
     defineField({
@@ -177,13 +214,15 @@ export default defineType({
       title: 'title',
       media: 'mainImage',
       category: 'category.title',
+      authorName: 'author.name',
       publishedAt: 'publishedAt',
     },
-    prepare({title, media, category, publishedAt}) {
+    prepare({ title, media, category, authorName, publishedAt }) {
       const date = publishedAt ? new Date(publishedAt).toLocaleDateString('ja-JP') : '下書き'
+      const meta = [category || '未分類', authorName, date].filter(Boolean).join(' | ')
       return {
         title,
-        subtitle: `${category || '未分類'} | ${date}`,
+        subtitle: meta,
         media,
       }
     },
@@ -192,7 +231,7 @@ export default defineType({
     {
       title: '公開日（新しい順）',
       name: 'publishedAtDesc',
-      by: [{field: 'publishedAt', direction: 'desc'}],
+      by: [{ field: 'publishedAt', direction: 'desc' }],
     },
   ],
 })
