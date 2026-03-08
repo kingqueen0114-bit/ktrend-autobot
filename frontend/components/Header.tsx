@@ -4,6 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { client } from '@/lib/sanity'
+import { articleCategorySlugQuery } from '@/lib/queries'
 import AdSlot from './AdSlot'
 
 const categories = [
@@ -28,6 +30,7 @@ export default function Header({ tickerItems }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobileSearchQuery, setMobileSearchQuery] = useState('')
+  const [articleCategoryAlias, setArticleCategoryAlias] = useState<string | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement>(null)
   const mobileTabsRef = useRef<HTMLDivElement>(null)
@@ -98,17 +101,40 @@ export default function Header({ tickerItems }: HeaderProps) {
     return ALL_PATHS.indexOf(pathname)
   }, [pathname])
 
+  // Resolve category context when viewing an individual article
+  useEffect(() => {
+    async function resolveArticleCategory() {
+      if (pathname.startsWith('/articles/') && pathname !== '/articles') {
+        const slug = pathname.replace('/articles/', '')
+        try {
+          const res = await client.fetch(articleCategorySlugQuery, { slug })
+          if (res?.categorySlug) {
+            setArticleCategoryAlias(res.categorySlug)
+          } else {
+            setArticleCategoryAlias(null)
+          }
+        } catch (e) {
+          console.error('Failed to fetch article category for header', e)
+          setArticleCategoryAlias(null)
+        }
+      } else {
+        setArticleCategoryAlias(null)
+      }
+    }
+    resolveArticleCategory()
+  }, [pathname])
+
   const isActiveCategory = (slug: string) => {
-    return pathname === '/category/' + slug
+    return pathname === '/category/' + slug || articleCategoryAlias === slug
   }
 
-  const isHome = pathname === '/' || pathname.startsWith('/articles')
+  const isHome = pathname === '/' || pathname === '/articles'
 
   // Compute the active tab color for the indicator line
   const activeTabColor = (() => {
-    if (isHome) return '#333333'
-    const activeCat = categories.find((c) => pathname === '/category/' + c.slug)
-    return activeCat ? activeCat.color : '#333333'
+    if (isHome) return '#FC4848'
+    const activeCat = categories.find((c) => isActiveCategory(c.slug))
+    return activeCat ? activeCat.color : '#FC4848'
   })()
 
   return (

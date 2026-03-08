@@ -71,6 +71,13 @@ export const articleBySlugQuery = groq`
   }
 `
 
+// 記事のカテゴリスラッグのみ取得（ヘッダーのアクティブタブ判定用）
+export const articleCategorySlugQuery = groq`
+  *[_type == "article" && slug.current == $slug][0] {
+    "categorySlug": category->slug.current
+  }
+`
+
 // Draft記事（プレビュー用）
 export const draftArticleQuery = groq`
   *[_type == "article" && _id == $id][0] {
