@@ -103,7 +103,7 @@ export default async function HomePage() {
                       {/* Inject In-Feed Ad Every 5 Articles */}
                       {(index + 1) % 5 === 0 && (
                         <div className="border-b border-[#292929]/10 w-full flex justify-center items-center">
-                          <AdSlot slot="5161090936" format="fluid" data-ad-layout-key="-6t+ed+2i-1n-4w" className="!py-0" />
+                          <AdSlot slot="5161090936" format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" className="!py-0" />
                         </div>
                       )}
                     </div>
