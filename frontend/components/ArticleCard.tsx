@@ -14,7 +14,7 @@ type Props = {
     category?: { title: string; slug: { current: string }; color: string }
     artistTags?: string[]
   }
-  variant?: 'default' | 'featured' | 'sidebar'
+  variant?: 'default' | 'featured' | 'sidebar' | 'list'
   rank?: number
 }
 
@@ -68,6 +68,47 @@ export default function ArticleCard({ article, variant = 'default', rank }: Prop
             {article.title}
           </h4>
           <time className="text-xs text-[#67737e] mt-1 block">{date}</time>
+        </div>
+      </Link>
+    )
+  }
+
+  if (variant === 'list') {
+    return (
+      <Link href={`/articles/${article.slug.current}`} className="flex gap-4 py-4 group items-start">
+        <div className="relative w-[100px] h-[100px] md:w-[120px] md:h-[120px] flex-shrink-0 overflow-hidden rounded-lg">
+          {imageUrl ? (
+            <Image
+              src={urlFor(article.mainImage).width(320).height(320).url()}
+              alt={article.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="160px"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gray-200 rounded-lg flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" /></svg>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-bold text-[#292929] line-clamp-2 group-hover:text-[#292929] transition-colors flex items-start gap-2">
+            {article.title}
+          </h3>
+          {article.excerpt && (
+            <p className="text-sm text-[#67737e] mt-1 line-clamp-2 hidden md:block">{article.excerpt}</p>
+          )}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {article.category && (
+              <CategoryBadge category={article.category} asLink={false} />
+            )}
+            <time className="text-xs text-[#67737e]">{date}</time>
+            {article.artistTags && article.artistTags.length > 0 && article.artistTags.slice(0, 3).map((tag: string) => (
+              <span key={tag} className="border border-[#292929]/50 text-[#292929] text-[10px] px-2 py-0.5 rounded-full">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </Link>
     )

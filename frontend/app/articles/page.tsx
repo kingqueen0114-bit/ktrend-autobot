@@ -1,7 +1,7 @@
-import type {Metadata} from 'next'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import {client} from '@/lib/sanity'
-import {articlesPaginatedQuery, articlesCountQuery} from '@/lib/queries'
+import { client } from '@/lib/sanity'
+import { articlesPaginatedQuery, articlesCountQuery } from '@/lib/queries'
 import ArticleCard from '@/components/ArticleCard'
 import Sidebar from '@/components/Sidebar'
 
@@ -11,11 +11,11 @@ const PER_PAGE = 12
 export const revalidate = 60
 
 type Props = {
-  searchParams: Promise<{page?: string}>
+  searchParams: Promise<{ page?: string }>
 }
 
-export async function generateMetadata({searchParams}: Props): Promise<Metadata> {
-  const {page} = await searchParams
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { page } = await searchParams
   const pageNum = parseInt(page || '1', 10)
   const title = pageNum > 1
     ? `記事一覧 (${pageNum}ページ目) | ${SITE_NAME}`
@@ -26,14 +26,14 @@ export async function generateMetadata({searchParams}: Props): Promise<Metadata>
   }
 }
 
-export default async function ArticlesPage({searchParams}: Props) {
-  const {page} = await searchParams
+export default async function ArticlesPage({ searchParams }: Props) {
+  const { page } = await searchParams
   const currentPage = Math.max(1, parseInt(page || '1', 10))
   const start = (currentPage - 1) * PER_PAGE
   const end = start + PER_PAGE
 
   const [articles, totalCount] = await Promise.all([
-    client.fetch(articlesPaginatedQuery, {start, end}),
+    client.fetch(articlesPaginatedQuery, { start, end }),
     client.fetch(articlesCountQuery),
   ])
 
@@ -69,9 +69,11 @@ export default async function ArticlesPage({searchParams}: Props) {
           {articles.length === 0 ? (
             <p className="text-[#67737e] text-center py-12">記事がありません</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-0">
               {articles.map((article: any) => (
-                <ArticleCard key={article._id} article={article} />
+                <div key={article._id} className="border-b border-[#292929]/10 last:border-0">
+                  <ArticleCard article={article} variant="list" />
+                </div>
               ))}
             </div>
           )}
@@ -107,11 +109,10 @@ export default async function ArticlesPage({searchParams}: Props) {
                   <Link
                     key={num}
                     href={`/articles?page=${num}`}
-                    className={`w-10 h-10 flex items-center justify-center rounded text-sm font-medium transition-colors ${
-                      num === currentPage
+                    className={`w-10 h-10 flex items-center justify-center rounded text-sm font-medium transition-colors ${num === currentPage
                         ? 'bg-[#292929] text-white'
                         : 'border border-gray-300 text-[#292929] hover:border-[#292929] hover:text-[#292929]'
-                    }`}
+                      }`}
                   >
                     {num}
                   </Link>
@@ -147,7 +148,7 @@ export default async function ArticlesPage({searchParams}: Props) {
 // Helper function to generate page numbers with ellipsis
 function generatePageNumbers(current: number, total: number): (number | '...')[] {
   if (total <= 7) {
-    return Array.from({length: total}, (_, i) => i + 1)
+    return Array.from({ length: total }, (_, i) => i + 1)
   }
 
   const pages: (number | '...')[] = []
