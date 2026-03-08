@@ -76,7 +76,7 @@ export default function ArticleCard({ article, variant = 'default', rank }: Prop
   if (variant === 'featured') {
     return (
       <Link href={`/articles/${article.slug.current}`} className="block group">
-        <div className="relative aspect-square md:aspect-video overflow-hidden rounded-lg">
+        <div className="relative aspect-video overflow-hidden rounded-lg">
           {imageUrl ? (
             <Image
               src={imageUrl}
