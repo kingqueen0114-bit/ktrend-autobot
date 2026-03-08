@@ -47,7 +47,7 @@ export default async function HomePage() {
                 {/* Hero: Latest article */}
                 {articles[0] && (
                   <Link href={`/articles/${articles[0].slug.current}`} className="block group mb-6">
-                    <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
+                    <div className="relative aspect-square md:aspect-[16/9] overflow-hidden rounded-lg">
                       {articles[0].mainImage ? (
                         <Image
                           src={urlFor(articles[0].mainImage).width(800).height(450).url()}
@@ -99,7 +99,7 @@ export default async function HomePage() {
                       href={`/articles/${article.slug.current}`}
                       className="flex gap-4 py-4 group"
                     >
-                      <div className="relative w-[120px] h-[80px] md:w-[160px] md:h-[100px] flex-shrink-0 overflow-hidden rounded-lg">
+                      <div className="relative w-[100px] md:w-[120px] aspect-square flex-shrink-0 overflow-hidden rounded-lg">
                         {article.mainImage ? (
                           <Image
                             src={urlFor(article.mainImage).width(320).height(200).url()}

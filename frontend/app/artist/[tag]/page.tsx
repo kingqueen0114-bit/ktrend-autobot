@@ -1,25 +1,25 @@
-import {notFound} from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import {client, urlFor} from '@/lib/sanity'
-import {articlesByArtistTagQuery, artistTagArticlesCountQuery} from '@/lib/queries'
+import { client, urlFor } from '@/lib/sanity'
+import { articlesByArtistTagQuery, artistTagArticlesCountQuery } from '@/lib/queries'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 import Sidebar from '@/components/Sidebar'
-import type {Metadata} from 'next'
+import type { Metadata } from 'next'
 
 export const revalidate = 60
 
 const SITE_NAME = 'K-TREND TIMES'
 
 type Props = {
-  params: Promise<{tag: string}>
+  params: Promise<{ tag: string }>
 }
 
-export async function generateMetadata({params}: Props): Promise<Metadata> {
-  const {tag} = await params
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { tag } = await params
   const decodedTag = decodeURIComponent(tag)
-  const count = await client.fetch(artistTagArticlesCountQuery, {artistTag: decodedTag})
+  const count = await client.fetch(artistTagArticlesCountQuery, { artistTag: decodedTag })
   const description = `「${decodedTag}」の最新ニュース${count > 0 ? `・記事${count}件` : ''}。${decodedTag}に関する韓国エンタメ・K-POPトレンド情報をお届けします。`
   return {
     title: `${decodedTag}の記事一覧 | ${SITE_NAME}`,
@@ -34,13 +34,13 @@ export async function generateMetadata({params}: Props): Promise<Metadata> {
   }
 }
 
-export default async function ArtistTagPage({params}: Props) {
-  const {tag} = await params
+export default async function ArtistTagPage({ params }: Props) {
+  const { tag } = await params
   const decodedTag = decodeURIComponent(tag)
 
   const [articles, totalCount] = await Promise.all([
-    client.fetch(articlesByArtistTagQuery, {artistTag: decodedTag, limit: 30}),
-    client.fetch(artistTagArticlesCountQuery, {artistTag: decodedTag}),
+    client.fetch(articlesByArtistTagQuery, { artistTag: decodedTag, limit: 30 }),
+    client.fetch(artistTagArticlesCountQuery, { artistTag: decodedTag }),
   ])
 
   if (totalCount === 0) notFound()
@@ -78,7 +78,7 @@ export default async function ArtistTagPage({params}: Props) {
           {/* Hero: Latest article */}
           {articles[0] && (
             <Link href={`/articles/${articles[0].slug.current}`} className="block group mb-6">
-              <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
+              <div className="relative aspect-square md:aspect-[16/9] overflow-hidden rounded-lg">
                 {articles[0].mainImage ? (
                   <Image
                     src={urlFor(articles[0].mainImage).width(800).height(450).url()}
@@ -101,7 +101,7 @@ export default async function ArtistTagPage({params}: Props) {
                   )}
                   <time className="text-white/60 text-xs mt-2 block">
                     {articles[0].publishedAt
-                      ? new Date(articles[0].publishedAt).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'})
+                      ? new Date(articles[0].publishedAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
                       : ''}
                   </time>
                 </div>
@@ -117,7 +117,7 @@ export default async function ArtistTagPage({params}: Props) {
                 href={`/articles/${article.slug.current}`}
                 className="flex gap-4 py-4 group"
               >
-                <div className="relative w-[120px] h-[80px] md:w-[160px] md:h-[100px] flex-shrink-0 overflow-hidden rounded-lg">
+                <div className="relative w-[100px] md:w-[120px] aspect-square flex-shrink-0 overflow-hidden rounded-lg">
                   {article.mainImage ? (
                     <Image
                       src={urlFor(article.mainImage).width(320).height(200).url()}
@@ -141,14 +141,14 @@ export default async function ArtistTagPage({params}: Props) {
                     {article.category && (
                       <span
                         className="text-xs text-white font-medium px-2 py-0.5 rounded-full"
-                        style={{backgroundColor: article.category.color}}
+                        style={{ backgroundColor: article.category.color }}
                       >
                         {article.category.title}
                       </span>
                     )}
                     <time className="text-xs text-[#67737e]">
                       {article.publishedAt
-                        ? new Date(article.publishedAt).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'})
+                        ? new Date(article.publishedAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
                         : ''}
                     </time>
                   </div>

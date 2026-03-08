@@ -27,7 +27,7 @@ function getRankStyle(rank: number): string {
 
 export default function ArticleCard({ article, variant = 'default', rank }: Props) {
   const imageUrl = article.mainImage
-    ? urlFor(article.mainImage).width(variant === 'sidebar' ? 120 : 640).height(variant === 'sidebar' ? 80 : 360).url()
+    ? urlFor(article.mainImage).width(variant === 'sidebar' ? 120 : 640).height(variant === 'sidebar' ? 120 : (variant === 'featured' ? 640 : 640)).url()
     : null
 
   const date = article.publishedAt
@@ -48,7 +48,7 @@ export default function ArticleCard({ article, variant = 'default', rank }: Prop
             {rank}
           </span>
         )}
-        <div className="relative w-[100px] h-[66px] flex-shrink-0 overflow-hidden rounded">
+        <div className="relative w-[80px] h-[80px] flex-shrink-0 overflow-hidden rounded">
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -76,7 +76,7 @@ export default function ArticleCard({ article, variant = 'default', rank }: Prop
   if (variant === 'featured') {
     return (
       <Link href={`/articles/${article.slug.current}`} className="block group">
-        <div className="relative aspect-video overflow-hidden rounded-lg">
+        <div className="relative aspect-square md:aspect-video overflow-hidden rounded-lg">
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -110,7 +110,7 @@ export default function ArticleCard({ article, variant = 'default', rank }: Prop
 
   return (
     <Link href={`/articles/${article.slug.current}`} className="block group">
-      <div className="relative aspect-video overflow-hidden rounded">
+      <div className="relative aspect-square overflow-hidden rounded">
         {imageUrl ? (
           <Image
             src={imageUrl}

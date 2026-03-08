@@ -1,19 +1,19 @@
-import {notFound} from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import {client, urlFor} from '@/lib/sanity'
-import {articlesByCategoryQuery, categoriesQuery} from '@/lib/queries'
-import {generateCategoryMetadata} from '@/lib/seo'
+import { client, urlFor } from '@/lib/sanity'
+import { articlesByCategoryQuery, categoriesQuery } from '@/lib/queries'
+import { generateCategoryMetadata } from '@/lib/seo'
 import Sidebar from '@/components/Sidebar'
 
 export const revalidate = 60
 
 type Props = {
-  params: Promise<{slug: string}>
+  params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({params}: Props) {
-  const {slug} = await params
+export async function generateMetadata({ params }: Props) {
+  const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
   const categories = await client.fetch(categoriesQuery)
   const category = categories.find((c: any) => c.slug.current === decodedSlug)
@@ -21,11 +21,11 @@ export async function generateMetadata({params}: Props) {
   return generateCategoryMetadata(category)
 }
 
-export default async function CategoryPage({params}: Props) {
-  const {slug} = await params
+export default async function CategoryPage({ params }: Props) {
+  const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
   const [articles, categories] = await Promise.all([
-    client.fetch(articlesByCategoryQuery, {categorySlug: decodedSlug, limit: 20}),
+    client.fetch(articlesByCategoryQuery, { categorySlug: decodedSlug, limit: 20 }),
     client.fetch(categoriesQuery),
   ])
 
@@ -44,7 +44,7 @@ export default async function CategoryPage({params}: Props) {
               {/* Hero: Latest article */}
               {articles[0] && (
                 <Link href={`/articles/${articles[0].slug.current}`} className="block group mb-6">
-                  <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
+                  <div className="relative aspect-square md:aspect-[16/9] overflow-hidden rounded-lg">
                     {articles[0].mainImage ? (
                       <Image
                         src={urlFor(articles[0].mainImage).width(800).height(450).url()}
@@ -67,7 +67,7 @@ export default async function CategoryPage({params}: Props) {
                       )}
                       <time className="text-white/60 text-xs mt-2 block">
                         {articles[0].publishedAt
-                          ? new Date(articles[0].publishedAt).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'})
+                          ? new Date(articles[0].publishedAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
                           : ''}
                       </time>
                     </div>
@@ -83,7 +83,7 @@ export default async function CategoryPage({params}: Props) {
                     href={`/articles/${article.slug.current}`}
                     className="flex gap-4 py-4 group"
                   >
-                    <div className="relative w-[120px] h-[80px] md:w-[160px] md:h-[100px] flex-shrink-0 overflow-hidden rounded-lg">
+                    <div className="relative w-[100px] md:w-[120px] aspect-square flex-shrink-0 overflow-hidden rounded-lg">
                       {article.mainImage ? (
                         <Image
                           src={urlFor(article.mainImage).width(320).height(200).url()}
@@ -107,14 +107,14 @@ export default async function CategoryPage({params}: Props) {
                         {article.category && (
                           <span
                             className="text-xs text-white font-medium px-2 py-0.5 rounded-full"
-                            style={{backgroundColor: article.category.color}}
+                            style={{ backgroundColor: article.category.color }}
                           >
                             {article.category.title}
                           </span>
                         )}
                         <time className="text-xs text-[#67737e]">
                           {article.publishedAt
-                            ? new Date(article.publishedAt).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'})
+                            ? new Date(article.publishedAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
                             : ''}
                         </time>
                         {article.artistTags && article.artistTags.length > 0 && article.artistTags.slice(0, 3).map((tag: string) => (

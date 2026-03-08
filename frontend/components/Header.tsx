@@ -6,14 +6,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 const categories = [
+  { title: 'トレンド', slug: 'trend', color: '#7CB342' },
+  { title: 'イベント', slug: 'event', color: '#26A69A' },
+  { title: 'グルメ', slug: 'gourmet', color: '#FF7043' },
   { title: 'アーティスト', slug: 'artist', color: '#FFA726' },
+  { title: '韓国旅行', slug: 'koreantrip', color: '#78909C' },
   { title: 'ビューティー', slug: 'beauty', color: '#29B6F6' },
   { title: 'ファッション', slug: 'fashion', color: '#EC407A' },
-  { title: 'グルメ', slug: 'gourmet', color: '#FF7043' },
-  { title: '韓国旅行', slug: 'koreantrip', color: '#78909C' },
-  { title: 'イベント', slug: 'event', color: '#26A69A' },
-  { title: 'トレンド', slug: 'trend', color: '#7CB342' },
-  { title: 'ライフスタイル', slug: 'lifestyle', color: '#B0BEC5' },
+  { title: 'コラム', slug: 'lifestyle', color: '#B0BEC5' },
 ]
 
 interface HeaderProps {
@@ -85,13 +85,13 @@ export default function Header({ tickerItems }: HeaderProps) {
   // Swipe navigation on mobile tabs
   const ALL_PATHS = [
     '/',
+    '/category/trend',
+    '/category/event',
+    '/category/gourmet',
     '/category/artist',
+    '/category/koreantrip',
     '/category/beauty',
     '/category/fashion',
-    '/category/gourmet',
-    '/category/koreantrip',
-    '/category/event',
-    '/category/trend',
     '/category/lifestyle',
   ]
 
@@ -331,7 +331,7 @@ export default function Header({ tickerItems }: HeaderProps) {
                 }`}
               style={{ backgroundColor: isHome ? '#333333' : '#9E9E9E' }}
             >
-              主要
+              最新
             </Link>
             {categories.map((cat) => {
               const isActive = isActiveCategory(cat.slug)
@@ -370,7 +370,7 @@ export default function Header({ tickerItems }: HeaderProps) {
                   e.currentTarget.style.color = isHome ? '#292929' : '#292929'
                 }}
               >
-                ホーム
+                最新
               </Link>
 
               {categories.map((cat) => {
