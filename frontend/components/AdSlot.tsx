@@ -4,12 +4,13 @@ import { useEffect } from 'react'
 
 type Props = {
   slot: string
-  format?: 'auto' | 'rectangle' | 'vertical' | 'horizontal'
+  format?: 'auto' | 'rectangle' | 'vertical' | 'horizontal' | 'fluid'
   style?: React.CSSProperties
   className?: string
+  'data-ad-layout-key'?: string
 }
 
-export default function AdSlot({ slot, format = 'auto', style, className }: Props) {
+export default function AdSlot({ slot, format = 'auto', style, className, 'data-ad-layout-key': dataAdLayoutKey }: Props) {
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ADSENSE_ID) {
@@ -36,12 +37,13 @@ export default function AdSlot({ slot, format = 'auto', style, className }: Prop
   return (
     <div className={`ad-container w-full overflow-hidden flex justify-center py-2 px-4 md:px-0 ${className || ''}`} style={style}>
       <ins
-        className="adsbygoogle"
-        style={style?.height ? { display: 'inline-block', width: '100%', ...style } : { display: 'block', ...style }}
-        data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID || ''}
-        data-ad-slot={slot || 'xxxxxxxxx'}
-        data-ad-format={style?.height ? undefined : format} // Disable auto format if forcing height
-        data-full-width-responsive={style?.height ? "false" : "true"}
+        className={`adsbygoogle ${className || ''}`}
+        style={{ display: 'block', ...style }}
+        data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID}
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive="true"
+        {...(dataAdLayoutKey ? { 'data-ad-layout-key': dataAdLayoutKey } : {})}
       />
     </div>
   )
