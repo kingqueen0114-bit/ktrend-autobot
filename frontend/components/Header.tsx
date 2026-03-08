@@ -102,7 +102,7 @@ export default function Header({ tickerItems }: HeaderProps) {
     return pathname === '/category/' + slug
   }
 
-  const isHome = pathname === '/'
+  const isHome = pathname === '/' || pathname.startsWith('/articles')
 
   // Compute the active tab color for the indicator line
   const activeTabColor = (() => {
