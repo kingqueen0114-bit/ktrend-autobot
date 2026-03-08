@@ -460,6 +460,16 @@ class StorageManager:
             log_error("FIRESTORE_GET_ERROR", "Failed to get draft from Firestore", error=e)
             return None
 
+    def delete_draft(self, draft_id: str) -> bool:
+        """Deletes a draft from Firestore by ID."""
+        try:
+            self.db.collection(self.collection_name).document(draft_id).delete()
+            logger.info(f"Firestoreドラフト削除: {draft_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Firestoreドラフト削除エラー: {e}")
+            return False
+
     def create_blank_draft(self, user_id):
         """Creates a blank draft in Firestore for manual article creation."""
         try:
