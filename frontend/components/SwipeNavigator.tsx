@@ -41,6 +41,42 @@ export default function SwipeNavigator({ children }: { children: ReactNode }) {
   const viewportWidth = useRef(375)
   const contentRef = useRef<HTMLDivElement>(null)
 
+  // Track article category context for accurate swipe math
+  const [articleCategoryAlias, setArticleCategoryAlias] = useState<string | null>(null)
+
+  // Resolve category context when viewing an individual article
+  useEffect(() => {
+    async function resolveArticleCategory() {
+      if (pathname.startsWith('/articles/') && pathname !== '/articles') {
+        const slugMatch = pathname.match(/\/articles\/([^\/]+)/)
+        const slug = slugMatch ? slugMatch[1] : null
+
+        if (!slug) {
+          setArticleCategoryAlias(null)
+          return
+        }
+
+        try {
+          const response = await fetch('/api/article-category/' + encodeURIComponent(slug))
+          if (!response.ok) throw new Error('Network response was not ok')
+          const data = await response.json()
+
+          if (data?.categorySlug) {
+            setArticleCategoryAlias(data.categorySlug)
+          } else {
+            setArticleCategoryAlias(null)
+          }
+        } catch (e) {
+          console.error('Failed to fetch article category from proxy API', e)
+          setArticleCategoryAlias(null)
+        }
+      } else {
+        setArticleCategoryAlias(null)
+      }
+    }
+    resolveArticleCategory()
+  }, [pathname])
+
   // Keep refs in sync with state for use in native event listener
   const animatingRef = useRef(false)
   useEffect(() => {
@@ -58,14 +94,26 @@ export default function SwipeNavigator({ children }: { children: ReactNode }) {
   }, [])
 
   const getCurrentIndex = useCallback(() => {
-    if (pathname === '/' || pathname.startsWith('/articles')) return 0
+    // Exact home or general archive => index 0 (最新)
+    if (pathname === '/' || pathname === '/articles') return 0
+
+    // Exact category archive => resolve via pathname chunk
     const match = pathname.match(/^\/category\/(.+)$/)
     if (match) {
       const idx = CATEGORIES.findIndex((c) => c.slug === match[1])
       return idx >= 0 ? idx : 0
     }
+
+    // Inside an individual article => resolve via fetched category alias
+    if (pathname.startsWith('/articles/') && articleCategoryAlias) {
+      const idx = CATEGORIES.findIndex((c) => c.slug === articleCategoryAlias)
+      return idx >= 0 ? idx : 0
+    }
+
+    // Default fallback => index 0 (最新)
+    if (pathname.startsWith('/articles/')) return 0
     return -1
-  }, [pathname])
+  }, [pathname, articleCategoryAlias])
 
   // Keep getCurrentIndex accessible from native event listener via ref
   const getCurrentIndexRef = useRef(getCurrentIndex)
