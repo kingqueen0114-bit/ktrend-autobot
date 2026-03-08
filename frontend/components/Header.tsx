@@ -140,9 +140,9 @@ export default function Header({ tickerItems }: HeaderProps) {
 
   // Compute the active tab color for the indicator line
   const activeTabColor = (() => {
-    if (isHome) return '#FC4848'
     const activeCat = categories.find((c) => isActiveCategory(c.slug))
-    return activeCat ? activeCat.color : '#FC4848'
+    if (activeCat) return activeCat.color
+    return isHome ? '#FC4848' : '#FC4848' // Default fallback
   })()
 
   return (
@@ -305,10 +305,9 @@ export default function Header({ tickerItems }: HeaderProps) {
           >
             <Link
               href="/"
-              data-active={isHome ? 'true' : 'false'}
-              className={`snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] ${isHome ? 'px-5 py-3 text-[15px] shadow-md' : 'opacity-85 px-4 py-2.5 text-[13px]'
-                }`}
-              style={{ backgroundColor: isHome ? '#FC4848' : '#9E9E9E' }}
+              data-active="true"
+              className="snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] px-5 py-3 text-[15px] shadow-md"
+              style={{ backgroundColor: '#FC4848' }}
             >
               最新
             </Link>
@@ -337,7 +336,7 @@ export default function Header({ tickerItems }: HeaderProps) {
                 href="/"
                 className="flex-shrink-0 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
                 style={{
-                  color: isHome ? '#FC4848' : '#292929',
+                  color: '#FC4848',
                   borderBottomColor: isHome ? '#FC4848' : 'transparent',
                 }}
                 onMouseEnter={(e) => {
@@ -346,7 +345,7 @@ export default function Header({ tickerItems }: HeaderProps) {
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent'
-                  e.currentTarget.style.color = isHome ? '#FC4848' : '#292929'
+                  e.currentTarget.style.color = '#FC4848'
                 }}
               >
                 最新
