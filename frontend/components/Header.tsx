@@ -4,8 +4,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { client } from '@/lib/sanity'
-import { articleCategorySlugQuery } from '@/lib/queries'
 import AdSlot from './AdSlot'
 
 const categories = [
@@ -105,16 +103,26 @@ export default function Header({ tickerItems }: HeaderProps) {
   useEffect(() => {
     async function resolveArticleCategory() {
       if (pathname.startsWith('/articles/') && pathname !== '/articles') {
-        const slug = pathname.replace('/articles/', '')
+        const slugMatch = pathname.match(/\/articles\/([^\/]+)/)
+        const slug = slugMatch ? slugMatch[1] : null
+
+        if (!slug) {
+          setArticleCategoryAlias(null)
+          return
+        }
+
         try {
-          const res = await client.fetch(articleCategorySlugQuery, { slug })
-          if (res?.categorySlug) {
-            setArticleCategoryAlias(res.categorySlug)
+          const response = await fetch('/api/article-category/' + encodeURIComponent(slug))
+          if (!response.ok) throw new Error('Network response was not ok')
+          const data = await response.json()
+
+          if (data?.categorySlug) {
+            setArticleCategoryAlias(data.categorySlug)
           } else {
             setArticleCategoryAlias(null)
           }
         } catch (e) {
-          console.error('Failed to fetch article category for header', e)
+          console.error('Failed to fetch article category from proxy API', e)
           setArticleCategoryAlias(null)
         }
       } else {
