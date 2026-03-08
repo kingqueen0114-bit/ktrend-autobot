@@ -6,14 +6,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 const categories = [
-  { title: 'トレンド', slug: 'trend', color: '#7CB342' },
-  { title: 'イベント', slug: 'event', color: '#26A69A' },
-  { title: 'グルメ', slug: 'gourmet', color: '#FF7043' },
-  { title: 'アーティスト', slug: 'artist', color: '#FFA726' },
-  { title: '韓国旅行', slug: 'koreantrip', color: '#78909C' },
-  { title: 'ビューティー', slug: 'beauty', color: '#29B6F6' },
-  { title: 'ファッション', slug: 'fashion', color: '#EC407A' },
-  { title: 'コラム', slug: 'lifestyle', color: '#B0BEC5' },
+  { title: 'トレンド', slug: 'trend', color: '#FA9101' },
+  { title: 'イベント', slug: 'event', color: '#FDD302' },
+  { title: 'グルメ', slug: 'gourmet', color: '#F54CB0' },
+  { title: 'アーティスト', slug: 'artist', color: '#06CA8C' },
+  { title: '韓国旅行', slug: 'koreantrip', color: '#329EE6' },
+  { title: 'ビューティー', slug: 'beauty', color: '#FFCCE1' },
+  { title: 'ファッション', slug: 'fashion', color: '#A94CD9' },
+  { title: 'コラム', slug: 'lifestyle', color: '#005CBF' },
 ]
 
 interface HeaderProps {
@@ -266,7 +266,7 @@ export default function Header({ tickerItems }: HeaderProps) {
               data-active={isHome ? 'true' : 'false'}
               className={`snap-start flex-shrink-0 rounded-t-lg font-bold text-white whitespace-nowrap transition-all duration-200 active:brightness-110 active:scale-[0.97] ${isHome ? 'px-5 py-3 text-[15px] shadow-md' : 'opacity-85 px-4 py-2.5 text-[13px]'
                 }`}
-              style={{ backgroundColor: isHome ? '#333333' : '#9E9E9E' }}
+              style={{ backgroundColor: isHome ? '#FC4848' : '#9E9E9E' }}
             >
               最新
             </Link>
@@ -295,8 +295,8 @@ export default function Header({ tickerItems }: HeaderProps) {
                 href="/"
                 className="flex-shrink-0 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
                 style={{
-                  color: isHome ? '#292929' : '#292929',
-                  borderBottomColor: isHome ? '#292929' : 'transparent',
+                  color: isHome ? '#FC4848' : '#292929',
+                  borderBottomColor: isHome ? '#FC4848' : 'transparent',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#292929'
@@ -304,7 +304,7 @@ export default function Header({ tickerItems }: HeaderProps) {
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent'
-                  e.currentTarget.style.color = isHome ? '#292929' : '#292929'
+                  e.currentTarget.style.color = isHome ? '#FC4848' : '#292929'
                 }}
               >
                 最新
@@ -416,9 +416,9 @@ export default function Header({ tickerItems }: HeaderProps) {
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center px-6 py-4 text-base font-medium border-b border-gray-50 transition-colors"
               style={{
-                color: isHome ? '#292929' : '#292929',
+                color: isHome ? '#FC4848' : '#292929',
                 borderLeftWidth: '4px',
-                borderLeftColor: isHome ? '#292929' : 'transparent',
+                borderLeftColor: isHome ? '#FC4848' : 'transparent',
               }}
             >
               ホーム
