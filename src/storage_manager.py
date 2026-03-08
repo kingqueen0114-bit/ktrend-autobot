@@ -203,7 +203,7 @@ class StorageManager:
 
     def save_draft_to_sanity(self, draft_data: dict, image_url: str = None,
                              additional_images: list = None, category: str = None,
-                             artist_tags: list = None) -> dict:
+                             artist_tags: list = None, doc_id: str = None) -> dict:
         """記事下書きをSanityに保存
 
         Args:
@@ -212,11 +212,13 @@ class StorageManager:
             additional_images: 追加画像URL配列
             category: トレンドカテゴリ (artist/beauty/fashion/food/travel/event/drama/other)
             artist_tags: アーティストタグ名配列
+            doc_id: 既存のIDを上書きする場合に指定
 
         Returns:
             {"id": draft_id, "preview_url": str, "edit_url": str, "slug": str}
         """
-        doc_id = sanity_client.generate_id()
+        if not doc_id:
+            doc_id = sanity_client.generate_id()
         draft_id = f"drafts.{doc_id}"
 
         title = draft_data.get("title", "")
@@ -287,6 +289,16 @@ class StorageManager:
         # None値を除去
         doc = {k: v for k, v in doc.items() if v is not None}
 
+        # 既存のドキュメントがあればフェッチしてマージ (author, sources等の消失を防ぐ)
+        existing_doc = sanity_client.query_one('*[_id == $id]{...}', {"id": draft_id})
+        if not existing_doc:
+            existing_doc = sanity_client.query_one('*[_id == $id]{...}', {"id": doc_id})
+            
+        if existing_doc:
+            for key, value in existing_doc.items():
+                if key not in doc and not key.startswith("_"):
+                    doc[key] = value
+
         # Sanityに保存
         sanity_client.create_or_replace(doc)
         logger.info(f"Sanity下書き保存完了: {draft_id} - {title}")
@@ -302,6 +314,7 @@ class StorageManager:
             "preview_url": preview_url,
             "edit_url": edit_url,
             "slug": slug,
+            "doc": doc
         }
 
     # 旧互換
@@ -332,60 +345,32 @@ class StorageManager:
             {"id": published_id, "url": public_url, "slug": slug}
         """
         import datetime
-
+        
+        target_doc_id = None
         if draft_id:
-            # 既存ドラフトを公開
-            plain_id = draft_id.replace("drafts.", "")
-            sanity_draft_id = f"drafts.{plain_id}"
-
-            # ドラフトを取得
-            draft = sanity_client.query_one(
-                '*[_id == $id]{...}',
-                {"id": sanity_draft_id}
-            )
-
-            if draft:
-                # drafts.xxx → xxx にMutate（公開）
-                _id = draft.pop("_id", None)
-                _rev = draft.pop("_rev", None)
-                _type = draft.get("_type", "article")
-                _updated = draft.pop("_updatedAt", None)
-                _created = draft.pop("_createdAt", None)
-
-                if not draft.get("publishedAt"):
-                    draft["publishedAt"] = datetime.datetime.utcnow().isoformat() + "Z"
-
-                mutations = [
-                    {"createOrReplace": {**draft, "_id": plain_id}},
-                    {"delete": {"id": sanity_draft_id}},
-                ]
-                sanity_client.transaction(mutations)
-
-                slug = draft.get("slug", {}).get("current", plain_id)
-                url = f"{self.next_app_url}/articles/{slug}"
-
-                logger.info(f"Sanity公開完了: {plain_id} - {draft.get('title', '')}")
-                return {"id": plain_id, "url": url, "slug": slug}
-
-        # ドラフトが見つからない場合: 新規作成して即公開
+            target_doc_id = draft_id.replace("drafts.", "")
+            
+        # ドラフトまたは公開記事としてSanityに最新の編集内容を保存（ID指定）
         result = self.save_draft_to_sanity(
-            draft_data, image_url, None, category, artist_tags
+            draft_data, image_url, None, category, artist_tags, doc_id=target_doc_id
         )
         doc_id = result["id"]
         draft_id_full = f"drafts.{doc_id}"
 
-        # ドラフトを取得して公開
-        draft = sanity_client.query_one(
-            '*[_id == $id]{...}',
-            {"id": draft_id_full}
-        )
+        # save_draft_to_sanityで構築された完全なドキュメントを利用（クエリ遅延による空振りを防止）
+        draft = result.get("doc")
 
         if draft:
-            _id = draft.pop("_id", None)
-            _rev = draft.pop("_rev", None)
-            _updated = draft.pop("_updatedAt", None)
-            _created = draft.pop("_createdAt", None)
-            draft["publishedAt"] = datetime.datetime.utcnow().isoformat() + "Z"
+            draft.pop("_rev", None)
+            draft.pop("_updatedAt", None)
+            draft.pop("_createdAt", None)
+            
+            # 既存の公開記事がある場合はその公開日時を維持する
+            published_doc = sanity_client.query_one('*[_id == $id]{publishedAt}', {"id": doc_id})
+            if published_doc and published_doc.get("publishedAt"):
+                draft["publishedAt"] = published_doc["publishedAt"]
+            else:
+                draft["publishedAt"] = datetime.datetime.utcnow().isoformat() + "Z"
 
             mutations = [
                 {"createOrReplace": {**draft, "_id": doc_id}},
@@ -396,7 +381,7 @@ class StorageManager:
         slug = result.get("slug", doc_id)
         url = f"{self.next_app_url}/articles/{slug}"
 
-        logger.info(f"Sanity新規公開完了: {doc_id}")
+        logger.info(f"Sanity公開完了（最新内容反映）: {doc_id}")
         return {"id": doc_id, "url": url, "slug": slug}
 
     # 旧互換
