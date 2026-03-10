@@ -1,21 +1,25 @@
 import Link from 'next/link'
 import { client } from '@/lib/sanity'
-import { articlesQuery, allArtistTagsQuery } from '@/lib/queries'
+import { articlesQuery, popularArticlesQuery, allArtistTagsQuery } from '@/lib/queries'
 import ArticleCard from './ArticleCard'
 import AdSlot from '@/components/AdSlot'
 
 export default async function Sidebar() {
-  const [popularArticles, artistTags] = await Promise.all([
+  const [popular, latestArticles, artistTags] = await Promise.all([
+    client.fetch(popularArticlesQuery, { limit: 5 }),
     client.fetch(articlesQuery, { limit: 5 }),
     client.fetch(allArtistTagsQuery),
   ])
+
+  // viewCountデータがまだない場合は新着記事にフォールバック
+  const popularArticles = popular.length > 0 ? popular : latestArticles
 
   return (
     <aside className="space-y-8">
       {/* Popular articles */}
       <div>
         <h3 className="text-base font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#292929]">
-          新着記事
+          人気の記事
         </h3>
         <div className="space-y-4">
           {popularArticles.map((article: any, i: number) => (

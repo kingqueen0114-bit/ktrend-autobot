@@ -323,3 +323,64 @@ def trigger_progress_report(request):
     except Exception as e:
         log_error("PROGRESS_REPORT_ERROR", "Progress report generation failed", error=e)
         return f"Error: {str(e)}", 500
+
+
+@functions_framework.http
+def trigger_sync_view_counts(request):
+    """GA4のPVデータをSanityのviewCountフィールドに同期"""
+    import src.sanity_client as sanity_client
+    from src.analytics_reporter import AnalyticsReporter
+    from datetime import datetime, timedelta
+
+    property_id = os.environ.get("GA4_PROPERTY_ID")
+    if not property_id:
+        return ("GA4_PROPERTY_ID not configured", 500)
+
+    try:
+        reporter = AnalyticsReporter(property_id)
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        top_pages = reporter.get_top_pages(start_date, end_date, limit=50)
+
+        # /articles/{slug} パスからslugを抽出
+        article_views = {}
+        for page in top_pages:
+            path = page.get("path", "")
+            if path.startswith("/articles/"):
+                slug = path.replace("/articles/", "").strip("/")
+                if slug:
+                    article_views[slug] = page.get("page_views", 0)
+
+        if not article_views:
+            return ("No article page views found", 200)
+
+        # Sanityの記事IDをslugから取得
+        slugs = list(article_views.keys())
+        query = '*[_type == "article" && slug.current in $slugs]{ _id, "slug": slug.current }'
+        articles = sanity_client.query(query, {"slugs": slugs})
+
+        # バッチでviewCountを更新
+        mutations = []
+        updated = 0
+        for article in articles:
+            slug = article.get("slug")
+            if slug in article_views:
+                mutations.append({
+                    "patch": {
+                        "id": article["_id"],
+                        "set": {"viewCount": article_views[slug]}
+                    }
+                })
+                updated += 1
+
+        if mutations:
+            sanity_client.transaction(mutations)
+
+        msg = f"ViewCount synced: {updated} articles updated"
+        print(msg)
+        return (msg, 200)
+
+    except Exception as e:
+        print(f"ViewCount sync error: {e}")
+        return (f"Error: {str(e)}", 500)

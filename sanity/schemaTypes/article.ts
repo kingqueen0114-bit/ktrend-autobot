@@ -168,6 +168,14 @@ export default defineType({
       validation: (Rule) => Rule.min(0).max(100),
     }),
     defineField({
+      name: 'viewCount',
+      title: 'PV数',
+      type: 'number',
+      description: 'GA4アクセスデータから自動更新（手動変更不要）',
+      readOnly: true,
+      hidden: true,
+    }),
+    defineField({
       name: 'xPost1',
       title: 'X投稿案1',
       type: 'text',

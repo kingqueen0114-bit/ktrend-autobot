@@ -352,6 +352,20 @@ export const newsSitemapQuery = groq`
   }
 `
 
+// 人気記事（viewCount降順）
+export const popularArticlesQuery = groq`
+  *[_type == "article" && defined(publishedAt) && defined(viewCount) && viewCount > 0] | order(viewCount desc)[0...$limit]{
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    viewCount
+  }
+`
+
 // ホットニュースティッカー用（最新5件）
 export const hotNewsQuery = groq`
   *[_type == "article" && defined(publishedAt)] | order(publishedAt desc)[0...5]{

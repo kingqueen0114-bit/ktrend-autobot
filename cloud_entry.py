@@ -15,7 +15,7 @@ import functions_framework
 import json
 
 # Re-export all handler functions so main.py and Cloud Functions can import them
-from handlers.schedulers import trigger_daily_fetch, trigger_stats_report, trigger_progress_report
+from handlers.schedulers import trigger_daily_fetch, trigger_stats_report, trigger_progress_report, trigger_sync_view_counts
 from handlers.webhook import handle_line_webhook
 from handlers.draft_editor import view_draft
 from handlers.generation_actions import (
@@ -84,6 +84,8 @@ def main(request):
         return trigger_stats_report(request)
     if action == 'progress_report':
         return trigger_progress_report(request)
+    if action == 'sync_view_counts':
+        return trigger_sync_view_counts(request)
 
     # Check for view_draft request (has 'id' parameter)
     if 'id' in request.args and not request.path == '/drafts':
