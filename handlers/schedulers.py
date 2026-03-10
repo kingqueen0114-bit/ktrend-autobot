@@ -343,14 +343,18 @@ def trigger_sync_view_counts(request):
 
         top_pages = reporter.get_top_pages(start_date, end_date, limit=50)
 
-        # /articles/{slug} パスからslugを抽出
+        # /articles/{slug} または /notes/{slug}（旧WPパス）からslugを抽出
         article_views = {}
         for page in top_pages:
             path = page.get("path", "")
+            slug = None
             if path.startswith("/articles/"):
                 slug = path.replace("/articles/", "").strip("/")
-                if slug:
-                    article_views[slug] = page.get("page_views", 0)
+            elif path.startswith("/notes/"):
+                slug = path.replace("/notes/", "").strip("/")
+            if slug:
+                # 同一slugの重複はPV合算
+                article_views[slug] = article_views.get(slug, 0) + page.get("page_views", 0)
 
         if not article_views:
             return ("No article page views found", 200)
