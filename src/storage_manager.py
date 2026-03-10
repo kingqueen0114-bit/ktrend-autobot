@@ -231,16 +231,40 @@ class StorageManager:
         if not slug:
             slug = doc_id[:20]
 
+        # ★ 既存ドキュメントを先に取得（画像保持のため）
+        existing_doc = sanity_client.query_one('*[_id == $id]{...}', {"id": draft_id})
+        if not existing_doc:
+            existing_doc = sanity_client.query_one('*[_id == $id]{...}', {"id": doc_id})
+
         # Markdown → Portable Text 変換
         body_pt = markdown_to_portable_text(body_text)
 
-        # アイキャッチ画像アップロード
+        # ★ アイキャッチ画像の処理（改善版）
         main_image = None
         if image_url:
-            img_result = self.upload_image_to_sanity(image_url, title)
-            if img_result.get("ref"):
-                main_image = img_result["ref"]
-                main_image["alt"] = title
+            # Sanity CDN URLの場合は再アップロード不要
+            if "cdn.sanity.io" in image_url:
+                # 既存ドキュメントのmainImageをそのまま使用
+                if existing_doc and existing_doc.get("mainImage"):
+                    main_image = existing_doc["mainImage"]
+                    logger.info(f"既存mainImageを保持（Sanity CDN URL）: {draft_id}")
+                else:
+                    # CDN URLだが既存ドキュメントにmainImageがない場合のみアップロード試行
+                    img_result = self.upload_image_to_sanity(image_url, title)
+                    if img_result.get("ref"):
+                        main_image = img_result["ref"]
+                        main_image["alt"] = title
+            else:
+                # 外部URLの場合：アップロード試行
+                img_result = self.upload_image_to_sanity(image_url, title)
+                if img_result.get("ref"):
+                    main_image = img_result["ref"]
+                    main_image["alt"] = title
+
+        # ★ アップロード失敗時のフォールバック：既存のmainImageを保持
+        if not main_image and existing_doc and existing_doc.get("mainImage"):
+            main_image = existing_doc["mainImage"]
+            logger.info(f"画像アップロード失敗/スキップ、既存mainImageを保持: {draft_id}")
 
         # カテゴリ参照
         category_ref = None
@@ -279,6 +303,7 @@ class StorageManager:
             "researchReport": draft_data.get("research_report", ""),
         }
 
+        # ★ mainImageは必ず設定（既存画像保持を含む）
         if main_image:
             doc["mainImage"] = main_image
         if category_ref:
@@ -289,11 +314,7 @@ class StorageManager:
         # None値を除去
         doc = {k: v for k, v in doc.items() if v is not None}
 
-        # 既存のドキュメントがあればフェッチしてマージ (author, sources等の消失を防ぐ)
-        existing_doc = sanity_client.query_one('*[_id == $id]{...}', {"id": draft_id})
-        if not existing_doc:
-            existing_doc = sanity_client.query_one('*[_id == $id]{...}', {"id": doc_id})
-            
+        # ★ 既存ドキュメントの残りフィールドをマージ（author, sources等の消失を防ぐ）
         if existing_doc:
             for key, value in existing_doc.items():
                 if key not in doc and not key.startswith("_"):
