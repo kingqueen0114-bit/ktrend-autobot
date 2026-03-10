@@ -92,7 +92,13 @@ export default function ArticleEditor({id, token}: Props) {
         // Initialize form
         const a = data.article
         setTitle(a.title || '')
-        setBodyMarkdown(a.bodyMarkdown || a.body || '')
+        // bodyMarkdown is converted from Portable Text by the API (route.ts GET handler).
+        // Fallback: if body is a string use it directly; if it's an array (raw Portable Text) show empty.
+        setBodyMarkdown(
+          a.bodyMarkdown ||
+            (typeof a.body === 'string' ? a.body : '') ||
+            '',
+        )
         setExcerpt(a.excerpt || '')
         setImageCredit(a.imageCredit || '')
         setCategoryId(a.category?._id || '')
