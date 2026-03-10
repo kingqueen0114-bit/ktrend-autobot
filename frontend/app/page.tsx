@@ -6,7 +6,7 @@ import ArticleCard from '@/components/ArticleCard'
 import AdSlot from '@/components/AdSlot'
 import Sidebar from '@/components/Sidebar'
 import JsonLd from '@/components/JsonLd'
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 
 const organizationJsonLd = {
   '@context': 'https://schema.org',

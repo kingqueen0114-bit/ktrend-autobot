@@ -7,7 +7,7 @@ import ArticleCard from '@/components/ArticleCard'
 import Sidebar from '@/components/Sidebar'
 
 const SITE_NAME = 'K-TREND TIMES'
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 
 export const revalidate = 60
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { optimizedUrl } from './sanity'
 
 const SITE_NAME = 'K-TREND TIMES'
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.png`
 
 export function generateArticleMetadata(article: {

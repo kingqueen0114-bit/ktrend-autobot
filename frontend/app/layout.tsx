@@ -27,14 +27,14 @@ export const metadata: Metadata = {
     template: '%s | K-TREND TIMES',
   },
   description: '韓国エンタメ・K-POP・ビューティー・ファッションの最新トレンドをお届けするニュースメディア',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'),
   icons: {
     icon: '/favicon.png',
     apple: '/favicon.png',
   },
   alternates: {
     types: {
-      'application/rss+xml': 'https://k-trendtimes.com/feed',
+      'application/rss+xml': 'https://www.k-trendtimes.com/feed',
     },
   },
   robots: {

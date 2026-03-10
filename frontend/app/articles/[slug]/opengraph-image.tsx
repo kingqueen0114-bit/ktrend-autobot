@@ -97,7 +97,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
             K-TREND TIMES
           </span>
           <span style={{ fontSize: 20, opacity: 0.7 }}>
-            k-trendtimes.com
+            www.k-trendtimes.com
           </span>
         </div>
       </div>

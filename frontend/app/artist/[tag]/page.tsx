@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { client, optimizedUrl } from '@/lib/sanity'
 import { articlesByArtistTagQuery, artistTagArticlesCountQuery } from '@/lib/queries'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 import Sidebar from '@/components/Sidebar'
 import type { Metadata } from 'next'
 

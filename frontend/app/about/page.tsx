@@ -3,7 +3,7 @@ import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
 
 const SITE_NAME = 'K-TREND TIMES'
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 
 export const metadata: Metadata = {
     title: `運営者情報（About Us） | ${SITE_NAME}`,

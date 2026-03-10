@@ -14,7 +14,7 @@ function escapeXml(str: string): string {
 
 export async function GET() {
   const articles = await client.fetch(rssFeedQuery)
-  const siteUrl = 'https://k-trendtimes.com'
+  const siteUrl = 'https://www.k-trendtimes.com'
   const now = new Date().toUTCString()
 
   const items = articles.map((article: any) => {

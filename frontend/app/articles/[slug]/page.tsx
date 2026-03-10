@@ -16,7 +16,7 @@ import ShareButtons from '@/components/ShareButtons'
 
 export const revalidate = 60
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 
 type Props = {
   params: Promise<{ slug: string }>

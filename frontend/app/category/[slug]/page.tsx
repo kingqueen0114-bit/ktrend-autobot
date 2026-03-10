@@ -10,7 +10,7 @@ import Sidebar from '@/components/Sidebar'
 import JsonLd from '@/components/JsonLd'
 
 const PER_PAGE = 12
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 
 export const revalidate = 60
 

@@ -2,7 +2,7 @@ import { client, optimizedUrl } from '@/lib/sanity'
 import { sitemapWithImagesQuery, categoriesQuery, allArtistTagsQuery } from '@/lib/queries'
 import type { MetadataRoute } from 'next'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.k-trendtimes.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [articles, categories, artistTags] = await Promise.all([

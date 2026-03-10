@@ -6,7 +6,7 @@ export const revalidate = 600
 export async function GET() {
   const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
   const articles = await client.fetch(newsSitemapQuery, { since })
-  const siteUrl = 'https://k-trendtimes.com'
+  const siteUrl = 'https://www.k-trendtimes.com'
 
   const urls = articles.map((article: any) => {
     const slug = article.slug?.current || article.slug
