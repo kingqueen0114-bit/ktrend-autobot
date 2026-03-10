@@ -160,6 +160,13 @@ class ContentGenerator:
                 article = json.loads(json_match.group())
                 article["category"] = category
                 article["source_link"] = link
+                # highlightsが生成されなかった場合のフォールバック
+                if not article.get("highlights"):
+                    article["highlights"] = self._extract_highlights_from_body(
+                        article.get("title", title),
+                        article.get("body", ""),
+                        article.get("meta_description", "")
+                    )
                 return article
             else:
                 return self._generate_fallback_article(title, snippet, category)
@@ -194,6 +201,35 @@ class ContentGenerator:
             ],
             "category": category,
         }
+
+    def _extract_highlights_from_body(self, title: str, body: str, meta_description: str) -> list:
+        """本文からhighlightsを自動抽出（Geminiが生成しなかった場合のフォールバック）"""
+        highlights = []
+
+        # 本文から見出し(##)を抽出して要約として使用
+        headings = re.findall(r'^##\s+(.+)$', body, re.MULTILINE)
+        for h in headings[:3]:
+            # 見出しを30-60文字に整形
+            clean = h.strip().rstrip('！!。.')
+            if len(clean) >= 5:
+                highlights.append(clean[:60])
+
+        # 見出しが不足する場合、meta_descriptionを使用
+        if len(highlights) < 2 and meta_description:
+            highlights.append(meta_description[:60])
+
+        # それでも不足する場合、タイトルベースで補完
+        if len(highlights) < 2:
+            highlights.append(f"{title[:50]}の最新情報")
+
+        if not highlights:
+            highlights = [
+                "韓国で話題のトレンド情報",
+                "最新ニュースをお届け",
+                "詳細は記事をチェック",
+            ]
+
+        return highlights[:3]
 
     def rewrite_article(self, article: Dict, warnings: List[str], trend: Dict, trend_sign_context: str = "") -> Dict:
         """
@@ -253,6 +289,13 @@ JSONのみ出力してください。
                 # Preserve original metadata
                 rewritten["category"] = article.get("category", trend.get("category", "trend"))
                 rewritten["source_link"] = article.get("source_link", trend.get("link", ""))
+                # highlightsが生成されなかった場合のフォールバック
+                if not rewritten.get("highlights"):
+                    rewritten["highlights"] = self._extract_highlights_from_body(
+                        rewritten.get("title", article.get("title", "")),
+                        rewritten.get("body", ""),
+                        rewritten.get("meta_description", "")
+                    )
                 return rewritten
             else:
                 return article
