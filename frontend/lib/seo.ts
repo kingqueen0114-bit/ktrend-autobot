@@ -20,7 +20,7 @@ export function generateArticleMetadata(article: {
   const ogImage = article.seo?.ogImage || article.mainImage
   const imageUrl = ogImage
     ? optimizedUrl(ogImage).width(1200).height(630).url()
-    : DEFAULT_OG_IMAGE
+    : null
 
   const articleUrl = `${SITE_URL}/articles/${article.slug.current}`
 
@@ -38,13 +38,13 @@ export function generateArticleMetadata(article: {
       modifiedTime: article._updatedAt || article.publishedAt,
       url: articleUrl,
       siteName: SITE_NAME,
-      images: [{ url: imageUrl, width: 1200, height: 630 }],
+      ...(imageUrl ? { images: [{ url: imageUrl, width: 1200, height: 630 }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [imageUrl],
+      ...(imageUrl ? { images: [imageUrl] } : {}),
     },
     robots: {
       index: true,
