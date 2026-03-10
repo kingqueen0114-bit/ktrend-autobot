@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Noto_Sans_JP, Encode_Sans_Condensed } from 'next/font/google'
+import { client } from '@/lib/sanity'
+import { hotNewsQuery } from '@/lib/queries'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ScrollToTop from '@/components/ScrollToTop'
@@ -46,7 +48,10 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const hotNews = await client.fetch(hotNewsQuery)
+  const tickerItems = hotNews.map((a: any) => a.title)
+
   return (
     <html lang="ja" className={`${notoSansJP.variable} ${encodeSans.variable}`}>
       <head>
@@ -64,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             strategy="afterInteractive"
           />
         )}
-        <Header />
+        <Header tickerItems={tickerItems} />
         <main className="min-h-screen pagead-ignore">
           <SwipeNavigator>{children}</SwipeNavigator>
         </main>

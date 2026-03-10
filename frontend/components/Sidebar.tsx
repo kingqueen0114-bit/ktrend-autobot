@@ -15,7 +15,7 @@ export default async function Sidebar() {
       {/* Popular articles */}
       <div>
         <h3 className="text-base font-bold text-[#292929] mb-4 pb-2 border-b-2 border-[#292929]">
-          人気の記事
+          新着記事
         </h3>
         <div className="space-y-4">
           {popularArticles.map((article: any, i: number) => (

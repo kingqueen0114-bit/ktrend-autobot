@@ -351,3 +351,11 @@ export const newsSitemapQuery = groq`
     "categoryTitle": category->title
   }
 `
+
+// ホットニュースティッカー用（最新5件）
+export const hotNewsQuery = groq`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc)[0...5]{
+    title,
+    "slug": slug.current
+  }
+`
