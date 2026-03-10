@@ -1,4 +1,4 @@
-import { client, optimizedUrl } from '@/lib/sanity'
+import { client, urlFor } from '@/lib/sanity'
 import { sitemapWithImagesQuery, categoriesQuery, allArtistTagsQuery } from '@/lib/queries'
 import type { MetadataRoute } from 'next'
 
@@ -17,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly' as const,
     priority: 0.8,
     ...(article.mainImage ? {
-      images: [optimizedUrl(article.mainImage).width(1200).url()],
+      images: [urlFor(article.mainImage).width(1200).url()],
     } : {}),
   }))
 
