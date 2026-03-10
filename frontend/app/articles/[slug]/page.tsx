@@ -13,6 +13,7 @@ import Sidebar from '@/components/Sidebar'
 import ArticleBody from '@/components/ArticleBody'
 import ScrollDepthTracker from '@/components/ScrollDepthTracker'
 import ShareButtons from '@/components/ShareButtons'
+import AdSlot from '@/components/AdSlot'
 
 export const revalidate = 60
 
@@ -388,6 +389,11 @@ export default async function ArticlePage({ params }: Props) {
                 </div>
               </section>
             )}
+
+            {/* Ad between sections */}
+            <div className="mt-8 w-full flex justify-center">
+              <AdSlot slot="5544234317" />
+            </div>
 
             {/* Recommended articles */}
             {recommendedArticles.length > 0 && (

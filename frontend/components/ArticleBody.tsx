@@ -77,6 +77,13 @@ export default function ArticleBody({ highlights, body, sourceUrl }: Props) {
         </div>
       )}
 
+      {/* Ad after highlights — always visible */}
+      {hasHighlights && (
+        <div className="my-8 w-full flex justify-center">
+          <AdSlot slot="9279135629" />
+        </div>
+      )}
+
       {/* Article body */}
       {expanded && (
         <>

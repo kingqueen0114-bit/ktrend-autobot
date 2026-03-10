@@ -53,7 +53,7 @@ export default async function Sidebar() {
 
       {/* Ad slot */}
       <div className="mt-8 w-full flex justify-center">
-        <AdSlot slot="sidebar" className="min-h-[250px] md:min-h-[600px]" />
+        <AdSlot slot="4560731053" className="min-h-[250px] md:min-h-[600px]" />
       </div>
     </aside>
   )
