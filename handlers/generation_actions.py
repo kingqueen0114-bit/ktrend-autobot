@@ -93,82 +93,19 @@ def process_ondemand_text(topic, line_bot_api, user_id):
             pass
 
 def process_ondemand_image(image_bytes, line_bot_api, user_id):
-    """Handles image-based triggered generation"""
-    from src.content_generator import ContentGenerator, check_article_quality
+    """Handles image-based triggered generation - not yet migrated to Sanity architecture."""
     from src.notifier import Notifier
-    from src.storage_manager import StorageManager
 
     try:
-        generator = ContentGenerator(os.environ.get("GEMINI_API_KEY"))
+        log_event("ONDEMAND_IMAGE_UNSUPPORTED", "Image-based generation not yet migrated to Sanity architecture")
         notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
-        storage = StorageManager()
-
-        public_img_url = storage.upload_bytes_to_gcs(image_bytes)
-        if not public_img_url:
-            log_error("IMAGE_UPLOAD_FAILED", "Image upload to GCS failed")
-            return
-
-        trend_data = generator.analyze_image_trend(public_img_url)
-        sns_content = generator.generate_content(trend_data)
-        cms_content = generator.generate_cms_article(trend_data)
-
-        quality = check_article_quality(cms_content, trend_data)
-        log_event("QUALITY_CHECK", f"Quality score: {quality['score']}/100", score=quality['score'])
-        rewritten = False
-        if not quality['passed'] and quality['warnings']:
-            log_event("ARTICLE_REWRITE", "Auto-rewriting article", warnings=quality['warnings'])
-            cms_content = generator.rewrite_article(cms_content, quality['warnings'], trend_data)
-            quality = check_article_quality(cms_content, trend_data)
-            rewritten = True
-
-        trend_category = trend_data.get('category', 'other')
-        artist_tags = cms_content.get('artist_tags', [])
-        if artist_tags:
-            trend_data['artist_tags'] = artist_tags
-            log_event("ARTIST_TAGS_EXTRACTED", "Artist tags extracted", tags=artist_tags)
-        wp_result = storage.save_draft_to_wordpress(cms_content, public_img_url, None, trend_category, artist_tags)
-
-        draft_data = {
-            "status": "draft",
-            "trend_source": trend_data,
-            "sns_content": sns_content,
-            "cms_content": cms_content,
-            "quality_score": quality['score'],
-            "quality_passed": quality['passed'],
-            "quality_warnings": quality['warnings'],
-            "was_rewritten": rewritten,
-            "wordpress_post_id": wp_result["id"] if wp_result else None,
-            "wordpress_preview_url": wp_result.get("preview_url") if wp_result else None,
-        }
-        draft_id = storage.save_draft(draft_data)
-
-        notifier.send_approval_request(
-             content={**sns_content, **cms_content},
-             image_url=public_img_url,
-             draft_id=draft_id,
-             wp_post_id=wp_result["id"] if wp_result else None,
-             wp_preview_url=wp_result.get("preview_url") if wp_result else None,
-             quality_data={
-                 'score': quality['score'],
-                 'passed': quality['passed'],
-                 'warnings': quality['warnings'],
-                 'was_rewritten': rewritten
-             },
-             slug=wp_result.get("slug") if wp_result else None
+        notifier.send_error_notification(
+            error_type="IMAGE_GENERATION_UNSUPPORTED",
+            error_message="画像からの記事生成はSanity移行後、まだ未対応です。テキストで記事トピックを送信してください。",
+            context="画像メッセージ受信"
         )
-        log_event("ONDEMAND_IMAGE_COMPLETE", "On-demand image process complete", draft_id=draft_id)
-
     except Exception as e:
-        log_error("ONDEMAND_IMAGE_ERROR", "On-demand image generation failed", error=e)
-        try:
-            notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
-            notifier.send_error_notification(
-                error_type="ONDEMAND_IMAGE_ERROR",
-                error_message=str(e),
-                context="画像からの記事生成中にエラー"
-            )
-        except:
-            pass
+        log_error("ONDEMAND_IMAGE_ERROR", "Failed to send unsupported notification", error=e)
 
 def process_category_generate(category, line_bot_api, reply_token, user_id):
     """Generate article for a specific category selected by user."""

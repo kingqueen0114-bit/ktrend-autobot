@@ -151,8 +151,9 @@ def process_approval(draft_id, line_bot_api, reply_token):
             x_message += f"🏷️ おすすめタグ: {hashtag_str}"
             if x_result.get("success") and x_result.get("tweet_url"):
                 x_message += f"\n\n✅ X自動投稿済み: {x_result['tweet_url']}"
-            user_id = os.environ.get("LINE_USER_ID").split(",")[0]
-            line_bot_api_push.push_message(user_id, TextMessage(text=x_message))
+            user_id = (os.environ.get("LINE_USER_ID") or "").split(",")[0]
+            if user_id:
+                line_bot_api_push.push_message(user_id, TextMessage(text=x_message))
     else:
         log_error("APPROVAL_FAILED", f"Failed to publish draft", draft_id=draft_id)
         mark_draft_error(draft_id, "wordpress_publish", "Failed to publish article", "publish")
@@ -336,7 +337,7 @@ def process_regenerate(category, line_bot_api, reply_token, user_id):
 def process_regenerate_article(draft_id: str, line_bot_api, reply_token):
     """Regenerate article content for a draft."""
     from src.storage_manager import StorageManager
-    from src.content_generator import ContentGenerator
+    from src.content_generator import ContentGenerator, check_article_quality
     from linebot.models import TextMessage
 
     storage = StorageManager()
@@ -351,21 +352,31 @@ def process_regenerate_article(draft_id: str, line_bot_api, reply_token):
 
         draft_data = draft.to_dict()
         trend_source = draft_data.get('trend_source', {})
-        original_topic = trend_source.get('original_topic', '')
 
-        if not original_topic:
+        if not trend_source:
             line_bot_api.reply_message(reply_token, TextMessage(text="❌ 元のトピック情報がありません。"))
             return
 
-        line_bot_api.reply_message(reply_token, TextMessage(text=f"🔄 記事を再生成中...\nトピック: {original_topic[:30]}..."))
+        article_title = trend_source.get('title', '')[:30]
+        line_bot_api.reply_message(reply_token, TextMessage(text=f"🔄 記事を再生成中...\nトピック: {article_title}..."))
 
-        generator = ContentGenerator()
-        category = trend_source.get('category', 'trend')
-        new_content = generator.generate_article(topic=original_topic, category=category, trend_data=trend_source)
+        generator = ContentGenerator(os.environ.get("GEMINI_API_KEY"))
+        new_cms_content = generator.generate_cms_article(trend_source)
 
-        if new_content:
+        if new_cms_content:
+            quality = check_article_quality(new_cms_content, trend_source)
+            rewritten = False
+            if not quality['passed'] and quality['warnings']:
+                new_cms_content = generator.rewrite_article(new_cms_content, quality['warnings'], trend_source)
+                quality = check_article_quality(new_cms_content, trend_source)
+                rewritten = True
+
             draft_ref.update({
-                'cms_content': new_content,
+                'cms_content': new_cms_content,
+                'quality_score': quality['score'],
+                'quality_passed': quality['passed'],
+                'quality_warnings': quality['warnings'],
+                'was_rewritten': rewritten,
                 'regenerated_at': datetime.now().isoformat(),
                 'regeneration_count': draft_data.get('regeneration_count', 0) + 1
             })
@@ -373,26 +384,32 @@ def process_regenerate_article(draft_id: str, line_bot_api, reply_token):
 
             from src.notifier import Notifier
             notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
+            sns_content = draft_data.get('sns_content', {})
             notifier.send_approval_request(
-                content=new_content,
-                image_url=draft_data.get('image_url', ''),
+                content={**sns_content, **new_cms_content},
+                image_url=draft_data.get('trend_source', {}).get('image_url', ''),
                 draft_id=draft_id,
                 wp_post_id=draft_data.get('wordpress_post_id'),
                 wp_preview_url=draft_data.get('wordpress_preview_url'),
-                quality_data=draft_data.get('quality_data')
+                quality_data={'score': quality['score'], 'passed': quality['passed'], 'warnings': quality['warnings'], 'was_rewritten': rewritten},
+                slug=draft_data.get('slug')
             )
         else:
             import requests
             headers = {"Content-Type": "application/json", "Authorization": f"Bearer {os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')}"}
-            payload = {"to": os.environ.get("LINE_USER_ID"), "messages": [{"type": "text", "text": "❌ 記事の再生成に失敗しました。"}]}
-            requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=payload)
+            user_id = (os.environ.get("LINE_USER_ID") or "").split(",")[0]
+            if user_id:
+                payload = {"to": user_id, "messages": [{"type": "text", "text": "❌ 記事の再生成に失敗しました。"}]}
+                requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=payload)
 
     except Exception as e:
         log_error("REGENERATE_FAILED", str(e), f"draft_id={draft_id}")
         import requests
         headers = {"Content-Type": "application/json", "Authorization": f"Bearer {os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')}"}
-        payload = {"to": os.environ.get("LINE_USER_ID"), "messages": [{"type": "text", "text": f"❌ エラー: {str(e)[:50]}"}]}
-        requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=payload)
+        user_id = (os.environ.get("LINE_USER_ID") or "").split(",")[0]
+        if user_id:
+            payload = {"to": user_id, "messages": [{"type": "text", "text": f"❌ エラー: {str(e)[:50]}"}]}
+            requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=payload)
 
 def process_approve_all(line_bot_api, reply_token):
     """Approve all pending drafts."""
@@ -459,10 +476,12 @@ def process_approve_all(line_bot_api, reply_token):
 
         from linebot import LineBotApi
         line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
-        line_bot_api_push.push_message(
-            os.environ.get("LINE_USER_ID").split(",")[0],
-            TextMessage(text=f"✅ 一括承認完了！\n成功: {success_count}件\n失敗: {fail_count}件")
-        )
+        bulk_user_id = (os.environ.get("LINE_USER_ID") or "").split(",")[0]
+        if bulk_user_id:
+            line_bot_api_push.push_message(
+                bulk_user_id,
+                TextMessage(text=f"✅ 一括承認完了！\n成功: {success_count}件\n失敗: {fail_count}件")
+            )
         log_event("BULK_APPROVE_COMPLETE", f"Approved {success_count} drafts", success_count=success_count, fail_count=fail_count)
 
     except Exception as e:

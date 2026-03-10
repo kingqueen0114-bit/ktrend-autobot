@@ -1,5 +1,16 @@
+import crypto from 'crypto'
 import {NextRequest, NextResponse} from 'next/server'
 import {createClient} from '@sanity/client'
+
+function verifyUploadToken(token: string): boolean {
+  const secret = process.env.EDIT_SECRET
+  if (!secret) return false
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update('upload')
+    .digest('hex')
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(token))
+}
 
 const sanityClient = createClient({
   projectId: '3pe6cvt2',
@@ -19,9 +30,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({error: 'Missing file or token'}, {status: 400})
     }
 
-    // Verify token matches any valid edit token format
-    const editSecret = process.env.EDIT_SECRET
-    if (!editSecret || !token) {
+    // Verify token using HMAC against EDIT_SECRET
+    if (!verifyUploadToken(token)) {
       return NextResponse.json({error: 'Unauthorized'}, {status: 401})
     }
 

@@ -8,7 +8,11 @@ export async function GET(request: NextRequest) {
   const secret = searchParams.get('secret')
   const slug = searchParams.get('slug')
 
-  const expected = process.env.PREVIEW_SECRET || ''
+  const expected = process.env.PREVIEW_SECRET
+  if (!expected) {
+    return new Response('Preview not configured', {status: 500})
+  }
+
   const received = secret || ''
   const maxLen = Math.max(expected.length, received.length)
   const expectedBuf = Buffer.from(expected.padEnd(maxLen))
