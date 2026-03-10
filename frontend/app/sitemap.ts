@@ -1,12 +1,12 @@
-import { client } from '@/lib/sanity'
-import { sitemapQuery, categoriesQuery, allArtistTagsQuery } from '@/lib/queries'
+import { client, optimizedUrl } from '@/lib/sanity'
+import { sitemapWithImagesQuery, categoriesQuery, allArtistTagsQuery } from '@/lib/queries'
 import type { MetadataRoute } from 'next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [articles, categories, artistTags] = await Promise.all([
-    client.fetch(sitemapQuery),
+    client.fetch(sitemapWithImagesQuery),
     client.fetch(categoriesQuery),
     client.fetch(allArtistTagsQuery),
   ])
@@ -16,6 +16,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: article._updatedAt || article.publishedAt,
     changeFrequency: 'weekly' as const,
     priority: 0.8,
+    ...(article.mainImage ? {
+      images: [optimizedUrl(article.mainImage).width(1200).url()],
+    } : {}),
   }))
 
   const categoryUrls = categories.map((cat: any) => ({

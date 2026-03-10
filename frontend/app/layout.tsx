@@ -37,11 +37,23 @@ export const metadata: Metadata = {
       'application/rss+xml': 'https://k-trendtimes.com/feed',
     },
   },
+  robots: {
+    index: true,
+    follow: true,
+    'max-image-preview': 'large' as const,
+    'max-snippet': -1,
+    'max-video-preview': -1,
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" className={`${notoSansJP.variable} ${encodeSans.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://cdn.sanity.io" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+      </head>
       <body className="font-sans bg-white text-[#292929] antialiased">
         <GoogleAnalytics />
         {process.env.NEXT_PUBLIC_ADSENSE_ID && (

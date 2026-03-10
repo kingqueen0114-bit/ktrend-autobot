@@ -223,6 +223,7 @@ def trigger_stats_report(request):
     """
     Weekly/Periodic Statistics Report Entry Point.
     Triggered by Cloud Scheduler to send statistics summary to LINE.
+    Includes GA4 analytics report if GA4_PROPERTY_ID is configured.
     """
     log_event("STATS_REPORT_START", "Starting stats report generation")
 
@@ -240,6 +241,20 @@ def trigger_stats_report(request):
 
         # Send to LINE
         success = notifier.send_stats_summary(stats, period_days=7, best_articles=best_articles)
+
+        # GA4 Analytics Report (if configured)
+        ga4_property_id = os.environ.get("GA4_PROPERTY_ID")
+        if ga4_property_id:
+            try:
+                from src.analytics_reporter import AnalyticsReporter, ReportScheduler
+                analytics = AnalyticsReporter(ga4_property_id)
+                scheduler = ReportScheduler(analytics, notifier)
+                scheduler.send_weekly_report()
+                log_event("GA4_REPORT_SENT", "GA4 weekly report sent successfully")
+            except Exception as ga4_err:
+                log_error("GA4_REPORT_ERROR", f"GA4 report failed (non-critical): {str(ga4_err)}", error=ga4_err)
+        else:
+            log_event("GA4_REPORT_SKIP", "GA4_PROPERTY_ID not configured, skipping analytics report")
 
         if success:
             return "Stats report sent successfully", 200

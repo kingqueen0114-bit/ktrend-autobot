@@ -81,12 +81,21 @@ export default async function ArticlePage({ params }: Props) {
 
   if (!article) notFound()
 
-  const relatedArticles = article.category?.slug?.current
-    ? await client.fetch(relatedArticlesQuery, {
-      categorySlug: article.category.slug.current,
-      currentId: article._id,
-    })
-    : []
+  const relatedResult = await client.fetch(relatedArticlesQuery, {
+    categorySlug: article.category?.slug?.current || '',
+    currentId: article._id,
+    artistTags: article.artistTags || [],
+  })
+
+  // アーティストタグ優先、カテゴリフォールバック、重複排除で最大4件
+  const seenIds = new Set<string>()
+  const relatedArticles: any[] = []
+  for (const a of [...(relatedResult.byArtistTag || []), ...(relatedResult.byCategory || [])]) {
+    if (!seenIds.has(a._id) && relatedArticles.length < 4) {
+      seenIds.add(a._id)
+      relatedArticles.push(a)
+    }
+  }
 
   const adjacentArticles = article.publishedAt
     ? await client.fetch(adjacentArticlesQuery, {
@@ -94,9 +103,20 @@ export default async function ArticlePage({ params }: Props) {
     })
     : { prev: null, next: null }
 
-  const recommendedArticles = await client.fetch(recommendedArticlesQuery, {
+  const recommendedResult = await client.fetch(recommendedArticlesQuery, {
     currentId: article._id,
+    artistTags: article.artistTags || [],
   })
+
+  // アーティストタグ優先、最新にフォールバック、重複排除
+  const recSeenIds = new Set<string>(relatedArticles.map((a: any) => a._id))
+  const recommendedArticles: any[] = []
+  for (const a of [...(recommendedResult.byArtistTag || []), ...(recommendedResult.latest || [])]) {
+    if (!recSeenIds.has(a._id) && recommendedArticles.length < 8) {
+      recSeenIds.add(a._id)
+      recommendedArticles.push(a)
+    }
+  }
 
   const imageUrl = article.mainImage
     ? optimizedUrl(article.mainImage).width(1200).height(630).url()

@@ -7,8 +7,10 @@ import ArticleCard from '@/components/ArticleCard'
 import AdSlot from '@/components/AdSlot'
 import { generateCategoryMetadata } from '@/lib/seo'
 import Sidebar from '@/components/Sidebar'
+import JsonLd from '@/components/JsonLd'
 
 const PER_PAGE = 12
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 
 export const revalidate = 60
 
@@ -47,7 +49,26 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const isFirstPage = currentPage === 1
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <>
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: `${category.title} | K-TREND TIMES`,
+        url: `${SITE_URL}/category/${decodedSlug}`,
+        description: category.description || `${category.title}の最新ニュース・トレンド情報`,
+        isPartOf: { '@type': 'WebSite', name: 'K-TREND TIMES', url: SITE_URL },
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: totalCount,
+          itemListElement: articles.map((a: any, i: number) => ({
+            '@type': 'ListItem',
+            position: (currentPage - 1) * PER_PAGE + i + 1,
+            url: `${SITE_URL}/articles/${a.slug.current}`,
+            name: a.title,
+          })),
+        },
+      }} />
+      <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Page heading with article count */}
       <p className="text-sm text-[#67737e] mb-6">
         全{totalCount}件の記事
@@ -179,6 +200,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

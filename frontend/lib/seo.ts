@@ -12,6 +12,7 @@ export function generateArticleMetadata(article: {
   mainImage?: any
   slug: { current: string }
   publishedAt?: string
+  _updatedAt?: string
   category?: { title: string }
 }): Metadata {
   const title = article.seo?.metaTitle || article.title
@@ -34,6 +35,7 @@ export function generateArticleMetadata(article: {
       description,
       type: 'article',
       publishedTime: article.publishedAt,
+      modifiedTime: article._updatedAt || article.publishedAt,
       url: articleUrl,
       siteName: SITE_NAME,
       images: [{ url: imageUrl, width: 1200, height: 630 }],
@@ -43,6 +45,13 @@ export function generateArticleMetadata(article: {
       title,
       description,
       images: [imageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large' as const,
+      'max-snippet': -1,
+      'max-video-preview': -1,
     },
   }
 }
@@ -68,6 +77,7 @@ export function articleJsonLd(article: {
   title: string
   excerpt?: string
   publishedAt?: string
+  _updatedAt?: string
   mainImage?: any
   slug: { current: string }
   category?: { title: string }
@@ -86,8 +96,12 @@ export function articleJsonLd(article: {
     description: article.excerpt || '',
     image: imageUrl ? [imageUrl] : [],
     datePublished: article.publishedAt,
-    dateModified: article.publishedAt,
+    dateModified: article._updatedAt || article.publishedAt,
     url: articleUrl,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': articleUrl,
+    },
     author: article.author ? {
       '@type': 'Person',
       name: article.author.name,
@@ -98,12 +112,14 @@ export function articleJsonLd(article: {
       url: SITE_URL
     },
     publisher: {
-      '@type': 'Organization',
+      '@type': 'NewsMediaOrganization',
       name: SITE_NAME,
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/favicon.png`
+        url: `${SITE_URL}/og-default.png`,
+        width: 600,
+        height: 60,
       }
     },
     articleSection: article.category?.title,

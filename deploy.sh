@@ -4,6 +4,11 @@ export PATH="/Users/yuiyane/google-cloud-sdk/bin:$PATH"
 
 set -e
 
+# Load environment variables FIRST so secrets are not empty strings
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Configuration
 FUNCTION_NAME="ktrend-autobot"
 REGION="asia-northeast1"
@@ -28,15 +33,27 @@ fi
 echo -e "${YELLOW}Setting up secrets...${NC}"
 
 # Sanity API
-echo -n "$SANITY_API_TOKEN" | gcloud secrets create SANITY_API_TOKEN --data-file=- 2>/dev/null || \
-echo -n "$SANITY_API_TOKEN" | gcloud secrets versions add SANITY_API_TOKEN --data-file=-
+if [ -n "${SANITY_API_TOKEN// /}" ]; then
+    echo -n "$SANITY_API_TOKEN" | gcloud secrets create SANITY_API_TOKEN --data-file=- 2>/dev/null || \
+    echo -n "$SANITY_API_TOKEN" | gcloud secrets versions add SANITY_API_TOKEN --data-file=-
+else
+    echo -e "${YELLOW}⚠️  SANITY_API_TOKEN is empty, skipping secret update. Using existing version if available.${NC}"
+fi
 
 # Edit & Preview secrets
-echo -n "$EDIT_SECRET" | gcloud secrets create EDIT_SECRET --data-file=- 2>/dev/null || \
-echo -n "$EDIT_SECRET" | gcloud secrets versions add EDIT_SECRET --data-file=-
+if [ -n "${EDIT_SECRET// /}" ]; then
+    echo -n "$EDIT_SECRET" | gcloud secrets create EDIT_SECRET --data-file=- 2>/dev/null || \
+    echo -n "$EDIT_SECRET" | gcloud secrets versions add EDIT_SECRET --data-file=-
+else
+    echo -e "${YELLOW}⚠️  EDIT_SECRET is empty, skipping secret update. Using existing version if available.${NC}"
+fi
 
-echo -n "$PREVIEW_SECRET" | gcloud secrets create PREVIEW_SECRET --data-file=- 2>/dev/null || \
-echo -n "$PREVIEW_SECRET" | gcloud secrets versions add PREVIEW_SECRET --data-file=-
+if [ -n "${PREVIEW_SECRET// /}" ]; then
+    echo -n "$PREVIEW_SECRET" | gcloud secrets create PREVIEW_SECRET --data-file=- 2>/dev/null || \
+    echo -n "$PREVIEW_SECRET" | gcloud secrets versions add PREVIEW_SECRET --data-file=-
+else
+    echo -e "${YELLOW}⚠️  PREVIEW_SECRET is empty, skipping secret update. Using existing version if available.${NC}"
+fi
 
 echo -e "${YELLOW}Deploying K-Trend AutoBot to Cloud Functions...${NC}"
 
@@ -51,7 +68,7 @@ gcloud functions deploy ${FUNCTION_NAME} \
   --memory=512MB \
   --timeout=${TIMEOUT} \
   --env-vars-file=.env.deploy.yaml \
-  --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest,LINE_CHANNEL_ACCESS_TOKEN=LINE_CHANNEL_ACCESS_TOKEN:latest,LINE_CHANNEL_SECRET=LINE_CHANNEL_SECRET:latest,WORDPRESS_APP_PASSWORD=WORDPRESS_APP_PASSWORD:latest,SANITY_API_TOKEN=SANITY_API_TOKEN:latest,EDIT_SECRET=EDIT_SECRET:latest,PREVIEW_SECRET=PREVIEW_SECRET:latest" \
+  --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest,LINE_CHANNEL_ACCESS_TOKEN=LINE_CHANNEL_ACCESS_TOKEN:latest,LINE_CHANNEL_SECRET=LINE_CHANNEL_SECRET:latest,WORDPRESS_APP_PASSWORD=WORDPRESS_APP_PASSWORD:latest,SANITY_API_TOKEN=SANITY_API_TOKEN:latest,EDIT_SECRET=EDIT_SECRET:latest,PREVIEW_SECRET=PREVIEW_SECRET:latest,GA4_PROPERTY_ID=GA4_PROPERTY_ID:latest" \
   --source=.
 
 echo -e "${GREEN}Deploy complete!${NC}"

@@ -1,10 +1,7 @@
-import { client } from '@/lib/sanity'
+import { client, optimizedUrl } from '@/lib/sanity'
 import { rssFeedQuery } from '@/lib/queries'
-import imageUrlBuilder from '@sanity/image-url'
 
 export const revalidate = 3600
-
-const builder = imageUrlBuilder(client)
 
 function escapeXml(str: string): string {
   return str
@@ -23,7 +20,7 @@ export async function GET() {
   const items = articles.map((article: any) => {
     const url = `${siteUrl}/articles/${article.slug?.current || article.slug}`
     const imageUrl = article.mainImage
-      ? builder.image(article.mainImage).auto('format').quality(80).width(1200).url()
+      ? optimizedUrl(article.mainImage).width(1200).url()
       : null
     const pubDate = article.publishedAt
       ? new Date(article.publishedAt).toUTCString()

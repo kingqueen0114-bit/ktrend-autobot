@@ -35,6 +35,7 @@ export const articleBySlugQuery = groq`
     _id,
     title,
     slug,
+    _updatedAt,
     body,
     excerpt,
     mainImage,
@@ -105,9 +106,17 @@ export const draftArticleQuery = groq`
   }
 `
 
-// 関連記事（同カテゴリ）
-export const relatedArticlesQuery = groq`
-  *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug && _id != $currentId] | order(publishedAt desc) [0...4] {
+// 関連記事（アーティストタグ優先 + カテゴリフォールバック）
+export const relatedArticlesQuery = groq`{
+  "byArtistTag": *[_type == "article" && defined(publishedAt) && _id != $currentId && count((artistTags[])[@ in $artistTags]) > 0] | order(publishedAt desc)[0...4] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    mainImage,
+    "category": category->{title, slug, color}
+  },
+  "byCategory": *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug && _id != $currentId] | order(publishedAt desc)[0...4] {
     _id,
     title,
     slug,
@@ -115,7 +124,7 @@ export const relatedArticlesQuery = groq`
     mainImage,
     "category": category->{title, slug, color}
   }
-`
+}`
 
 // 全カテゴリ
 export const categoriesQuery = groq`
@@ -172,9 +181,18 @@ export const draftsListQuery = groq`
   }
 `
 
-// おすすめ記事（ランダム風に最新記事から取得）
-export const recommendedArticlesQuery = groq`
-  *[_type == "article" && defined(publishedAt) && _id != $currentId] | order(publishedAt desc) [0...8] {
+// おすすめ記事（アーティストタグ優先 + 最新フォールバック）
+export const recommendedArticlesQuery = groq`{
+  "byArtistTag": *[_type == "article" && defined(publishedAt) && _id != $currentId && count((artistTags[])[@ in $artistTags]) > 0] | order(publishedAt desc)[0...8] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color}
+  },
+  "latest": *[_type == "article" && defined(publishedAt) && _id != $currentId] | order(publishedAt desc)[0...8] {
     _id,
     title,
     slug,
@@ -183,7 +201,7 @@ export const recommendedArticlesQuery = groq`
     mainImage,
     "category": category->{title, slug, color}
   }
-`
+}`
 
 // 検索クエリ
 export const searchQuery = groq`
@@ -311,5 +329,25 @@ export const rssFeedQuery = groq`
     metaDescription,
     mainImage,
     "categorySlug": category->slug.current
+  }
+`
+
+// サイトマップ用（画像URL含む）
+export const sitemapWithImagesQuery = groq`
+  *[_type == "article" && defined(publishedAt)] | order(publishedAt desc) {
+    slug,
+    publishedAt,
+    _updatedAt,
+    mainImage
+  }
+`
+
+// ニュースサイトマップ用（過去48時間）
+export const newsSitemapQuery = groq`
+  *[_type == "article" && defined(publishedAt) && publishedAt > $since] | order(publishedAt desc) {
+    title,
+    slug,
+    publishedAt,
+    "categoryTitle": category->title
   }
 `

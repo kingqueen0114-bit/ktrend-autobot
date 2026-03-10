@@ -33,10 +33,30 @@ export const revalidate = 60
 export default async function HomePage() {
   const articles = await client.fetch(articlesQuery, { limit: 30 })
 
+  const collectionPageJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'K-TREND TIMES | 韓国トレンド情報メディア',
+    url: SITE_URL,
+    description: '韓国エンタメ・K-POP・ビューティー・ファッションの最新トレンドをお届けするニュースメディア',
+    isPartOf: { '@type': 'WebSite', name: 'K-TREND TIMES', url: SITE_URL },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: articles.length,
+      itemListElement: articles.slice(0, 10).map((a: any, i: number) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `${SITE_URL}/articles/${a.slug.current}`,
+        name: a.title,
+      })),
+    },
+  }
+
   return (
     <>
       <JsonLd data={organizationJsonLd} />
       <JsonLd data={webSiteJsonLd} />
+      <JsonLd data={collectionPageJsonLd} />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main content */}
