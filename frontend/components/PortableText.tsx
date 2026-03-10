@@ -1,11 +1,11 @@
 import { PortableText as PortableTextReact } from '@portabletext/react'
 import Image from 'next/image'
-import { urlFor } from '@/lib/sanity'
+import { optimizedUrl } from '@/lib/sanity'
 
 const components = {
   types: {
     image: ({ value }: { value: any }) => {
-      const imageUrl = urlFor(value).width(800).url()
+      const imageUrl = optimizedUrl(value).width(800).url()
 
       // Calculate aspect ratio from Sanity reference
       let aspectRatio = '16/9' // fallback

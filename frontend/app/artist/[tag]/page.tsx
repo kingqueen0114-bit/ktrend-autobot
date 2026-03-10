@@ -1,14 +1,14 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { client, urlFor } from '@/lib/sanity'
+import { client, optimizedUrl } from '@/lib/sanity'
 import { articlesByArtistTagQuery, artistTagArticlesCountQuery } from '@/lib/queries'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
 import Sidebar from '@/components/Sidebar'
 import type { Metadata } from 'next'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 const SITE_NAME = 'K-TREND TIMES'
 
@@ -84,7 +84,7 @@ export default async function ArtistTagPage({ params }: Props) {
               <div className="relative aspect-square md:aspect-[16/9] overflow-hidden rounded-lg">
                 {articles[0].mainImage ? (
                   <Image
-                    src={urlFor(articles[0].mainImage).width(800).height(450).url()}
+                    src={optimizedUrl(articles[0].mainImage).width(800).height(450).url()}
                     alt={articles[0].title}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -123,7 +123,7 @@ export default async function ArtistTagPage({ params }: Props) {
                 <div className="relative w-[100px] h-[100px] md:w-[120px] md:h-[120px] flex-shrink-0 overflow-hidden rounded-lg">
                   {article.mainImage ? (
                     <Image
-                      src={urlFor(article.mainImage).width(320).height(320).url()}
+                      src={optimizedUrl(article.mainImage).width(320).height(320).url()}
                       alt={article.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"

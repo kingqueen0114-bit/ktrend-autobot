@@ -32,6 +32,11 @@ export const metadata: Metadata = {
     icon: '/favicon.png',
     apple: '/favicon.png',
   },
+  alternates: {
+    types: {
+      'application/rss+xml': 'https://k-trendtimes.com/feed',
+    },
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { client, urlFor } from '@/lib/sanity'
+import { client, optimizedUrl } from '@/lib/sanity'
 import { articlesQuery } from '@/lib/queries'
 import ArticleCard from '@/components/ArticleCard'
 import AdSlot from '@/components/AdSlot'
@@ -28,7 +28,7 @@ const webSiteJsonLd = {
   },
 }
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 export default async function HomePage() {
   const articles = await client.fetch(articlesQuery, { limit: 30 })
@@ -51,7 +51,7 @@ export default async function HomePage() {
                     <div className="relative aspect-square md:aspect-[16/9] overflow-hidden rounded-lg">
                       {articles[0].mainImage ? (
                         <Image
-                          src={urlFor(articles[0].mainImage).width(800).height(450).url()}
+                          src={optimizedUrl(articles[0].mainImage).width(800).height(450).url()}
                           alt={articles[0].title}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"

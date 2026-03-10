@@ -282,3 +282,34 @@ export const artistTagArticlesCountQuery = groq`
 export const allArtistTagsQuery = groq`
   array::unique(*[_type == "article" && defined(publishedAt) && defined(artistTags)].artistTags[])
 `
+
+// カテゴリ別記事（ページネーション対応）
+export const articlesByCategoryPaginatedQuery = groq`
+  *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug] | order(publishedAt desc) [$start...$end] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    artistTags
+  }
+`
+
+// カテゴリ別記事の総数
+export const articlesByCategoryCountQuery = groq`
+  count(*[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug])
+`
+
+// RSSフィード用（最新50件）
+export const rssFeedQuery = groq`
+  *[_type == "article" && !(_id in path("drafts.**"))] | order(publishedAt desc)[0...50] {
+    title,
+    slug,
+    publishedAt,
+    metaDescription,
+    mainImage,
+    "categorySlug": category->slug.current
+  }
+`

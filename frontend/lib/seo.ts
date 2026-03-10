@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { urlFor } from './sanity'
+import { optimizedUrl } from './sanity'
 
 const SITE_NAME = 'K-TREND TIMES'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://k-trendtimes.com'
@@ -18,7 +18,7 @@ export function generateArticleMetadata(article: {
   const description = article.seo?.metaDescription || article.excerpt || ''
   const ogImage = article.seo?.ogImage || article.mainImage
   const imageUrl = ogImage
-    ? urlFor(ogImage).width(1200).height(630).url()
+    ? optimizedUrl(ogImage).width(1200).height(630).url()
     : DEFAULT_OG_IMAGE
 
   const articleUrl = `${SITE_URL}/articles/${article.slug.current}`
@@ -74,7 +74,7 @@ export function articleJsonLd(article: {
   author?: { name: string, slug?: { current: string } }
 }) {
   const imageUrl = article.mainImage
-    ? urlFor(article.mainImage).width(1200).height(630).url()
+    ? optimizedUrl(article.mainImage).width(1200).height(630).url()
     : undefined
 
   const articleUrl = `${SITE_URL}/articles/${article.slug.current}`

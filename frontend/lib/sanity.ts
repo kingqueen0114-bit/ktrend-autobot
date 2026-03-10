@@ -33,3 +33,7 @@ const builder = imageUrlBuilder(client)
 export function urlFor(source: SanityImageSource) {
   return builder.image(source)
 }
+
+export function optimizedUrl(source: SanityImageSource) {
+  return builder.image(source).auto('format').quality(80)
+}

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { urlFor } from '@/lib/sanity'
+import { optimizedUrl } from '@/lib/sanity'
 import CategoryBadge from './CategoryBadge'
 
 type Props = {
@@ -27,7 +27,7 @@ function getRankStyle(rank: number): string {
 
 export default function ArticleCard({ article, variant = 'default', rank }: Props) {
   const imageUrl = article.mainImage
-    ? urlFor(article.mainImage).width(variant === 'sidebar' ? 120 : 640).height(variant === 'sidebar' ? 120 : (variant === 'featured' ? 640 : 640)).url()
+    ? optimizedUrl(article.mainImage).width(variant === 'sidebar' ? 120 : 640).height(variant === 'sidebar' ? 120 : (variant === 'featured' ? 640 : 640)).url()
     : null
 
   const date = article.publishedAt
@@ -79,7 +79,7 @@ export default function ArticleCard({ article, variant = 'default', rank }: Prop
         <div className="relative w-[100px] h-[100px] md:w-[120px] md:h-[120px] flex-shrink-0 overflow-hidden rounded-lg">
           {imageUrl ? (
             <Image
-              src={urlFor(article.mainImage).width(320).height(320).url()}
+              src={optimizedUrl(article.mainImage).width(320).height(320).url()}
               alt={article.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
