@@ -106,12 +106,17 @@ export default async function ArticlePage({ params }: Props) {
   const recommendedResult = await client.fetch(recommendedArticlesQuery, {
     currentId: article._id,
     artistTags: article.artistTags || [],
+    categorySlug: article.category?.slug?.current || '',
   })
 
-  // アーティストタグ優先、最新にフォールバック、重複排除
+  // アーティストタグ人気 → 同カテゴリ人気 → 全体人気、重複排除
   const recSeenIds = new Set<string>(relatedArticles.map((a: any) => a._id))
   const recommendedArticles: any[] = []
-  for (const a of [...(recommendedResult.byArtistTag || []), ...(recommendedResult.latest || [])]) {
+  for (const a of [
+    ...(recommendedResult.byArtistTag || []),
+    ...(recommendedResult.byCategoryPopular || []),
+    ...(recommendedResult.popular || []),
+  ]) {
     if (!recSeenIds.has(a._id) && recommendedArticles.length < 8) {
       recSeenIds.add(a._id)
       recommendedArticles.push(a)

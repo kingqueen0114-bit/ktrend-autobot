@@ -181,25 +181,37 @@ export const draftsListQuery = groq`
   }
 `
 
-// おすすめ記事（アーティストタグ優先 + 最新フォールバック）
+// おすすめ記事（アーティストタグ人気 → 同カテゴリ人気 → 全体人気）
 export const recommendedArticlesQuery = groq`{
-  "byArtistTag": *[_type == "article" && defined(publishedAt) && _id != $currentId && count((artistTags[])[@ in $artistTags]) > 0] | order(publishedAt desc)[0...8] {
+  "byArtistTag": *[_type == "article" && defined(publishedAt) && _id != $currentId && count((artistTags[])[@ in $artistTags]) > 0] | order(coalesce(viewCount, 0) desc)[0...8] {
     _id,
     title,
     slug,
     publishedAt,
     excerpt,
     mainImage,
-    "category": category->{title, slug, color}
+    "category": category->{title, slug, color},
+    viewCount
   },
-  "latest": *[_type == "article" && defined(publishedAt) && _id != $currentId] | order(publishedAt desc)[0...8] {
+  "byCategoryPopular": *[_type == "article" && defined(publishedAt) && category->slug.current == $categorySlug && _id != $currentId] | order(coalesce(viewCount, 0) desc)[0...8] {
     _id,
     title,
     slug,
     publishedAt,
     excerpt,
     mainImage,
-    "category": category->{title, slug, color}
+    "category": category->{title, slug, color},
+    viewCount
+  },
+  "popular": *[_type == "article" && defined(publishedAt) && _id != $currentId && defined(viewCount) && viewCount > 0] | order(viewCount desc)[0...8] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    mainImage,
+    "category": category->{title, slug, color},
+    viewCount
   }
 }`
 
