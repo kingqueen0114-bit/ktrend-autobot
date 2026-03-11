@@ -50,7 +50,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const hotNews = await client.fetch(hotNewsQuery)
-  const tickerItems = hotNews.map((a: any) => a.title)
+  const tickerItems = hotNews.map((a: any) => ({ title: a.title, slug: a.slug }))
 
   return (
     <html lang="ja" className={`${notoSansJP.variable} ${encodeSans.variable}`}>

@@ -17,8 +17,13 @@ const categories = [
   { title: 'コラム', slug: 'lifestyle', color: '#005CBF' },
 ]
 
+interface TickerItem {
+  title: string
+  slug: string
+}
+
 interface HeaderProps {
-  tickerItems?: string[]
+  tickerItems?: TickerItem[]
 }
 
 export default function Header({ tickerItems }: HeaderProps) {
@@ -33,11 +38,9 @@ export default function Header({ tickerItems }: HeaderProps) {
   const mobileSearchInputRef = useRef<HTMLInputElement>(null)
   const mobileTabsRef = useRef<HTMLDivElement>(null)
 
-  const tickerTexts = tickerItems && tickerItems.length > 0
+  const items = tickerItems && tickerItems.length > 0
     ? tickerItems
-    : ['最新ニュースをチェック']
-
-  const tickerContent = tickerTexts.join('\u3000\u3000\u3000')
+    : null
 
   // Focus search input when opened
   useEffect(() => {
@@ -216,8 +219,20 @@ export default function Header({ tickerItems }: HeaderProps) {
             {/* News ticker */}
             <div className="flex-1 overflow-hidden relative">
               <div className="flex whitespace-nowrap ticker-animate">
-                <span className="text-white/90 px-2">{tickerContent}</span>
-                <span className="text-white/90 px-2">{tickerContent}</span>
+                {[0, 1].map((copy) => (
+                  <span key={copy} className="text-white/90 px-2">
+                    {items ? items.map((item, i) => (
+                      <Link
+                        key={`${copy}-${i}`}
+                        href={`/articles/${item.slug}`}
+                        className="hover:text-white hover:underline transition-colors"
+                      >
+                        {item.title}
+                        {i < items.length - 1 && <span className="mx-4 text-white/40">|</span>}
+                      </Link>
+                    )) : '最新ニュースをチェック'}
+                  </span>
+                ))}
               </div>
             </div>
             <div className="hidden md:flex gap-3 flex-shrink-0 ml-3">
