@@ -124,9 +124,14 @@ export default async function ArticlePage({ params }: Props) {
     }
   }
 
+  const imageDimensions = article.mainImage?.asset?.metadata?.dimensions
   const imageUrl = article.mainImage
-    ? optimizedUrl(article.mainImage).width(1200).height(630).url()
+    ? optimizedUrl(article.mainImage).width(1200).url()
     : null
+  const imageWidth = 1200
+  const imageHeight = imageDimensions
+    ? Math.round(1200 / imageDimensions.aspectRatio)
+    : 630
 
   const date = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString('ja-JP', {
@@ -211,16 +216,16 @@ export default async function ArticlePage({ params }: Props) {
                   <Image
                     src={imageUrl}
                     alt={article.mainImage?.alt || article.title}
-                    width={1200}
-                    height={630}
+                    width={imageWidth}
+                    height={imageHeight}
                     className="w-full h-auto"
                     sizes="(max-width: 768px) 100vw, 70vw"
                     priority
                   />
                 </div>
-                {article.imageCredit && (
+                {(article.mainImage?.credit || article.imageCredit) && (
                   <figcaption className="text-xs text-[#67737e] mt-2">
-                    出典: {article.imageCredit}
+                    出典: {article.mainImage?.credit || article.imageCredit}
                   </figcaption>
                 )}
               </figure>

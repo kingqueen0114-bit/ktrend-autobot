@@ -38,7 +38,15 @@ export const articleBySlugQuery = groq`
     _updatedAt,
     body,
     excerpt,
-    mainImage,
+    mainImage{
+      ...,
+      credit,
+      asset->{
+        metadata{
+          dimensions{width, height, aspectRatio}
+        }
+      }
+    },
     imageCredit,
     publishedAt,
     seo,
@@ -88,7 +96,15 @@ export const draftArticleQuery = groq`
     publishedAt,
     body,
     excerpt,
-    mainImage,
+    mainImage{
+      ...,
+      credit,
+      asset->{
+        metadata{
+          dimensions{width, height, aspectRatio}
+        }
+      }
+    },
     imageCredit,
     seo,
     "category": category->{_id, title, slug, color},

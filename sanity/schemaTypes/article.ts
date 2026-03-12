@@ -80,6 +80,7 @@ export default defineType({
       options: { hotspot: true },
       fields: [
         { name: 'alt', type: 'string', title: '代替テキスト' },
+        { name: 'credit', type: 'string', title: '画像クレジット（出典）' },
       ],
     }),
     defineField({
