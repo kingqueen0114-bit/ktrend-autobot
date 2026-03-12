@@ -130,12 +130,12 @@ def handle_line_webhook(request):
                                    {
                                        "type": "button",
                                        "style": "primary",
-                                       "color": "#1DB446",
+                                       "color": "#FF5722",
                                        "height": "sm",
                                        "margin": "sm",
                                        "action": {
                                            "type": "postback",
-                                           "label": "🤖 AIで自動生成",
+                                           "label": "🔥 最新トレンド取得",
                                            "data": "action=show_categories"
                                        }
                                    },
@@ -168,12 +168,59 @@ def handle_line_webhook(request):
                        )
                        recover_failed_drafts(line_bot_api, event.source.user_id)
                     elif text in ["トレンド", "trend", "今日のトレンド", "最新トレンド"]:
-                       # Show current trends without generating articles
+                       # Show trend category selection menu
+                       from linebot.models import FlexSendMessage
+                       categories = [
+                           ("🎤", "K-pop", "#6C5CE7", "artist"),
+                           ("💄", "コスメ", "#E84393", "beauty"),
+                           ("👗", "ファッション", "#00B894", "fashion"),
+                           ("🍜", "グルメ", "#FDCB6E", "food"),
+                           ("✈️", "旅行", "#0984E3", "travel"),
+                           ("🎉", "イベント", "#FF7675", "event"),
+                       ]
+                       buttons = []
+                       for emoji, name, color, cat in categories:
+                           buttons.append({
+                               "type": "button",
+                               "style": "primary",
+                               "color": color,
+                               "height": "sm",
+                               "margin": "sm",
+                               "action": {
+                                   "type": "postback",
+                                   "label": f"{emoji} {name}",
+                                   "data": f"action=trend_preview_cat&cat={cat}",
+                                   "displayText": f"{emoji} {name}のトレンドを取得中..."
+                               }
+                           })
+                       buttons.append({
+                           "type": "button",
+                           "style": "secondary",
+                           "height": "sm",
+                           "margin": "sm",
+                           "action": {
+                               "type": "postback",
+                               "label": "🔥 全カテゴリ",
+                               "data": "action=trend_preview_cat&cat=all",
+                               "displayText": "🔥 全カテゴリのトレンドを取得中..."
+                           }
+                       })
+                       flex_msg = {
+                           "type": "bubble",
+                           "body": {
+                               "type": "box",
+                               "layout": "vertical",
+                               "contents": [
+                                   {"type": "text", "text": "🔥 トレンドを取得", "weight": "bold", "size": "lg", "color": "#333333"},
+                                   {"type": "text", "text": "カテゴリを選んでください", "size": "xs", "color": "#999999", "margin": "sm"},
+                                   {"type": "separator", "margin": "lg"}
+                               ] + buttons
+                           }
+                       }
                        line_bot_api.reply_message(
                            event.reply_token,
-                           TextMessage(text="🔍 最新トレンドを取得中...")
+                           FlexSendMessage(alt_text="トレンドカテゴリ選択", contents=flex_msg)
                        )
-                       show_trend_summary(line_bot_api, event.source.user_id)
                     elif text.startswith("検索 ") or text.startswith("検索　"):
                        # Search published articles
                        keyword = text.split(" ", 1)[1] if " " in text else text.split("　", 1)[1]
@@ -227,8 +274,8 @@ def handle_line_webhook(request):
                     process_approval, process_rejection, process_regenerate,
                     process_approve_all, process_schedule, process_regenerate_article,
                 )
-                from handlers.generation_actions import process_category_generate
-                from handlers.info_actions import show_pending_drafts
+                from handlers.generation_actions import process_category_generate, process_generate_from_preview, process_generate_all_from_preview
+                from handlers.info_actions import show_pending_drafts, show_trend_summary
                 from handlers.edit_actions import show_quick_edit_options, store_edit_session
 
                 if action == 'approve':
@@ -284,15 +331,15 @@ def handle_line_webhook(request):
                 elif action == 'show_categories':
                     from linebot.models import FlexSendMessage
                     categories = [
-                        ("🎤", "K-pop", "#6C5CE7", "K-pop アイドル"),
-                        ("💄", "コスメ", "#E84393", "韓国コスメ"),
-                        ("👗", "ファッション", "#00B894", "韓国ファッション"),
-                        ("🍜", "グルメ", "#FDCB6E", "韓国グルメ"),
-                        ("✈️", "旅行", "#0984E3", "韓国旅行"),
-                        ("🎉", "イベント", "#FF7675", "K-pop イベント"),
+                        ("🎤", "K-pop", "#6C5CE7", "artist"),
+                        ("💄", "コスメ", "#E84393", "beauty"),
+                        ("👗", "ファッション", "#00B894", "fashion"),
+                        ("🍜", "グルメ", "#FDCB6E", "food"),
+                        ("✈️", "旅行", "#0984E3", "travel"),
+                        ("🎉", "イベント", "#FF7675", "event"),
                     ]
                     buttons = []
-                    for emoji, name, color, topic in categories:
+                    for emoji, name, color, cat in categories:
                         buttons.append({
                             "type": "button",
                             "style": "primary",
@@ -300,27 +347,65 @@ def handle_line_webhook(request):
                             "height": "sm",
                             "margin": "sm",
                             "action": {
-                                "type": "message",
+                                "type": "postback",
                                 "label": f"{emoji} {name}",
-                                "text": f"記事: {topic}"
+                                "data": f"action=trend_preview_cat&cat={cat}",
+                                "displayText": f"{emoji} {name}のトレンドを取得中..."
                             }
                         })
+                    buttons.append({
+                        "type": "button",
+                        "style": "secondary",
+                        "height": "sm",
+                        "margin": "sm",
+                        "action": {
+                            "type": "postback",
+                            "label": "🔥 全カテゴリ",
+                            "data": "action=trend_preview_cat&cat=all",
+                            "displayText": "🔥 全カテゴリのトレンドを取得中..."
+                        }
+                    })
                     flex_msg = {
                         "type": "bubble",
                         "body": {
                             "type": "box",
                             "layout": "vertical",
                             "contents": [
-                                {"type": "text", "text": "📂 カテゴリを選択", "weight": "bold", "size": "lg", "color": "#333333"},
-                                {"type": "text", "text": "AIが生成するカテゴリを選んでください", "size": "xs", "color": "#999999", "margin": "sm"},
+                                {"type": "text", "text": "🔥 トレンドを取得", "weight": "bold", "size": "lg", "color": "#333333"},
+                                {"type": "text", "text": "カテゴリを選んでください", "size": "xs", "color": "#999999", "margin": "sm"},
                                 {"type": "separator", "margin": "lg"}
                             ] + buttons
                         }
                     }
                     line_bot_api.reply_message(
                         event.reply_token,
-                        FlexSendMessage(alt_text="カテゴリ選択", contents=flex_msg)
+                        FlexSendMessage(alt_text="トレンドカテゴリ選択", contents=flex_msg)
                     )
+                elif action == 'trend_preview_cat':
+                    cat = params.get('cat', 'all')
+                    from linebot.models import TextMessage
+                    line_bot_api.reply_message(
+                        event.reply_token,
+                        TextMessage(text="🔍 最新トレンドを取得中...")
+                    )
+                    show_trend_summary(line_bot_api, event.source.user_id, category=cat)
+                elif action == 'gen_from_preview':
+                    preview_id = params.get('pid', '')
+                    idx = int(params.get('idx', 0))
+                    from linebot.models import TextMessage
+                    line_bot_api.reply_message(
+                        event.reply_token,
+                        TextMessage(text="📝 選択したトレンドから記事を生成中...少々お待ちを！")
+                    )
+                    process_generate_from_preview(preview_id, idx, line_bot_api, event.source.user_id)
+                elif action == 'gen_all_preview':
+                    preview_id = params.get('pid', '')
+                    from linebot.models import TextMessage
+                    line_bot_api.reply_message(
+                        event.reply_token,
+                        TextMessage(text="🚀 全トレンドから記事を一括生成中...少々お待ちを！")
+                    )
+                    process_generate_all_from_preview(preview_id, line_bot_api, event.source.user_id)
                 elif action == 'create_blank_draft':
                     from src.storage_manager import StorageManager
                     from linebot.models import FlexSendMessage, TextMessage

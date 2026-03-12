@@ -45,6 +45,9 @@ class TrendFetcher:
         "韓国旅行 おすすめ 穴場",
         "韓国カフェ 最新 人気",
         "韓国スキンケア おすすめ",
+        "韓国コスメ site:prtimes.jp",
+        "韓国ファッション site:prtimes.jp",
+        "韓国グルメ site:prtimes.jp",
     ]
 
     # Fallback images from Unsplash
@@ -103,31 +106,29 @@ class TrendFetcher:
             return self._search_with_gemini(query)
 
     def _search_with_gemini(self, query: str) -> List[Dict]:
-        """Fallback search using Gemini REST API when Google Custom Search fails."""
+        """Fallback search using Gemini REST API with Google Search grounding."""
         if not self.api_key:
             log_error("GEMINI_API_KEY_MISSING", "Gemini API key not available for fallback search")
             return []
 
         try:
-            prompt = f"""あなたは韓国トレンド情報の専門家です。「{query}」に関する最新のトレンド情報を3つ提供してください。
-以下の条件を厳守してください：
-1. ただの事実やニュースの要約ではなく、SNSでのユーザーの反応や、他ブランドとのコラボ、市場の動きなど「なぜ今これが流行る兆しなのか」という流行のサイン（兆し）を必ず含めること。
-2. K-POPアイドルの情報の場合は、PR TIMES等の公式プレスリリースやInstagramでの発言など、具体的なソースや一次情報を意識した内容にすること。
-3. 推測ではなく、事実に基づいた最新情報を出力すること。
+            prompt = f"""「{query}」に関する最新のトレンド情報を3つ、ウェブ検索結果に基づいて提供してください。
+以下の条件を厳守：
+1. SNSでの反応やコラボなど「流行のサイン（兆し）」を含めること。
+2. 推測ではなく、検索で見つかった事実に基づくこと。
 
-以下のJSON配列形式で回答してください（JSONのみ、他のテキスト不要）：
+以下のJSON配列形式で回答（JSONのみ、他のテキスト不要）：
 [
   {{
     "title": "トレンドのタイトル（魅力的で具体的なもの）",
-    "link": "参考になるURL（公式ニュース、PR TIMES、Instagramリンクなど。架空のものでも形式が合っていれば可）",
-    "snippet": "トレンドの具体的な内容。ただの事実ではなく、なぜ話題なのか、どのような「流行のサイン」があるのかを含めた150文字程度の解説。"
+    "snippet": "なぜ話題なのか、流行のサインを含めた150文字程度の解説。"
   }}
-]
-- linkはダミーURLで構いません"""
+]"""
 
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
+                "tools": [{"google_search": {}}],
                 "generationConfig": {
                     "temperature": 0.7
                 }
@@ -150,8 +151,18 @@ class TrendFetcher:
                 ) from None
 
             data = response.json()
-            parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            candidate = data.get("candidates", [{}])[0]
+            parts = candidate.get("content", {}).get("parts", [])
             text = "".join(part.get("text", "") for part in parts)
+
+            # Extract grounding URLs from metadata
+            grounding_metadata = candidate.get("groundingMetadata", {})
+            grounding_chunks = grounding_metadata.get("groundingChunks", [])
+            grounding_urls = []
+            for chunk in grounding_chunks:
+                web = chunk.get("web", {})
+                if web.get("uri"):
+                    grounding_urls.append(web["uri"])
 
             text = text.strip()
 
@@ -169,7 +180,16 @@ class TrendFetcher:
             else:
                 raise ValueError(f"No JSON array found in response: {text[:100]}...")
 
-            log_event("GEMINI_FALLBACK_SUCCESS", f"Gemini fallback generated trends", count=len(results))
+            # Assign real grounding URLs to each result
+            from urllib.parse import quote
+            for i, result in enumerate(results):
+                if i < len(grounding_urls):
+                    result["link"] = grounding_urls[i]
+                elif not result.get("link"):
+                    result["link"] = f"https://www.google.com/search?q={quote(query)}"
+
+            log_event("GEMINI_FALLBACK_SUCCESS", f"Gemini fallback generated trends",
+                      count=len(results), grounding_urls=len(grounding_urls))
             return results
         except Exception as e:
             error_msg = f"Gemini fallback REST API failed: {type(e).__name__}: {mask_url_keys(str(e))}"

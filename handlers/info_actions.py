@@ -190,61 +190,67 @@ def show_pending_drafts(line_bot_api, reply_token):
         log_error("PENDING_DRAFTS_ERROR", f"Error showing pending drafts: {e}", error=e)
         line_bot_api.reply_message(reply_token, TextMessage(text=f"エラーが発生しました: {str(e)[:50]}"))
 
-def show_trend_summary(line_bot_api, user_id):
-    """Show current trends without generating articles."""
+def show_trend_summary(line_bot_api, user_id, category: str = "all"):
+    """Show current trends as a preview carousel with generate buttons."""
     from src.fetch_trends import TrendFetcher
-    from linebot.models import FlexSendMessage, TextMessage
+    from src.storage_manager import StorageManager
+    from src.notifier import Notifier
+    from linebot.models import TextMessage
     from linebot import LineBotApi
+    from datetime import datetime
+
+    # カテゴリ別トピックマッピング
+    category_topics = {
+        'artist': 'K-POP アイドル 最新ニュース',
+        'beauty': '韓国コスメ 新作 スキンケア',
+        'fashion': '韓国ファッション 最新トレンド',
+        'food': '韓国グルメ カフェ おすすめ',
+        'travel': '韓国旅行 ソウル おすすめスポット',
+        'event': 'K-POP コンサート イベント フェス',
+    }
 
     try:
         fetcher = TrendFetcher(os.environ.get("GEMINI_API_KEY"))
-        trends = fetcher.fetch_trends(include_kpop=True)
+        storage = StorageManager()
+        notifier = Notifier(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"), os.environ.get("LINE_USER_ID"))
+
+        if category and category != "all":
+            year = datetime.now().strftime("%Y")
+            topic = f"{category_topics.get(category, '韓国 トレンド')} {year}"
+            trends = fetcher.fetch_trends(topic=topic)
+        else:
+            trends = fetcher.fetch_trends(include_kpop=True)
 
         if not trends:
             line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
             line_bot_api_push.push_message(user_id, TextMessage(text="📭 現在トレンドが見つかりませんでした。"))
             return
 
-        trends = trends[:6]
-        category_emojis = {
-            'artist': '🎤', 'beauty': '💄', 'fashion': '👗',
-            'food': '🍜', 'travel': '✈️', 'event': '🎉',
-            'drama': '📺', 'other': '📰', 'trend': '🔥'
-        }
+        # 重複フィルタ
+        filtered_trends = []
+        for trend in trends:
+            title = trend.get('title', '')
+            if not storage.is_duplicate_trend(title):
+                filtered_trends.append(trend)
 
-        trend_items = []
-        for i, trend in enumerate(trends, 1):
-            title = trend.get('title', '不明')[:40]
-            snippet = trend.get('snippet', '')[:60]
-            category = trend.get('category', 'other')
-            emoji = category_emojis.get(category, '📰')
-            trend_items.append({
-                "type": "box", "layout": "horizontal", "margin": "lg",
-                "contents": [
-                    {"type": "text", "text": f"{emoji}", "size": "xl", "flex": 0},
-                    {"type": "box", "layout": "vertical", "flex": 5, "margin": "md", "contents": [
-                        {"type": "text", "text": title, "weight": "bold", "size": "sm", "wrap": True, "maxLines": 2},
-                        {"type": "text", "text": snippet + "..." if snippet else "", "size": "xs", "color": "#888888", "wrap": True, "maxLines": 2, "margin": "sm"}
-                    ]}
-                ]
-            })
-            if i < len(trends):
-                trend_items.append({"type": "separator", "margin": "md"})
+        if not filtered_trends:
+            line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
+            line_bot_api_push.push_message(user_id, TextMessage(text="📭 新しいトレンドが見つかりませんでした（すべて既出です）。"))
+            return
 
-        flex_message = {
-            "type": "bubble", "size": "mega",
-            "header": {"type": "box", "layout": "vertical", "contents": [
-                {"type": "text", "text": "🔥 今日のトレンド", "weight": "bold", "size": "xl", "color": "#ffffff"}
-            ], "backgroundColor": "#1DB446", "paddingAll": "15px"},
-            "body": {"type": "box", "layout": "vertical", "contents": trend_items},
-            "footer": {"type": "box", "layout": "vertical", "contents": [
-                {"type": "button", "style": "primary", "action": {"type": "message", "label": "📝 記事を生成", "text": "カテゴリ"}}
-            ]}
-        }
+        # 最大8件に制限
+        filtered_trends = filtered_trends[:8]
 
-        line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
-        line_bot_api_push.push_message(user_id, FlexSendMessage(alt_text=f"今日のトレンド {len(trends)}件", contents=flex_message))
-        log_event("TREND_SUMMARY_SENT", f"Showed {len(trends)} trends")
+        # Firestoreにプレビューデータ保存
+        preview_id = storage.save_trend_preview(user_id, filtered_trends)
+        if not preview_id:
+            line_bot_api_push = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
+            line_bot_api_push.push_message(user_id, TextMessage(text="❌ プレビューデータの保存に失敗しました。"))
+            return
+
+        # Carousel Flex Messageで送信
+        notifier.send_trend_preview(filtered_trends, preview_id)
+        log_event("TREND_PREVIEW_SENT", f"Sent trend preview carousel with {len(filtered_trends)} trends", preview_id=preview_id)
 
     except Exception as e:
         log_error("TREND_SUMMARY_ERROR", f"Trend summary error: {e}", error=e)

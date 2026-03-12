@@ -781,3 +781,95 @@ class StorageManager:
         except Exception as e:
             log_error("TREND_CLEANUP_ERROR", "Failed to cleanup trend titles", error=e)
             return 0
+
+    # ================================================================
+    # Trend Preview メソッド群
+    # ================================================================
+
+    def save_trend_preview(self, user_id: str, trends: list) -> str:
+        """トレンドプレビューデータをFirestoreに一時保存し、preview_idを返す"""
+        try:
+            doc_ref = self.db.collection('trend_previews').document()
+            doc_ref.set({
+                'user_id': user_id,
+                'trends': trends,
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'status': 'pending',
+            })
+            log_event("TREND_PREVIEW_SAVED", "Trend preview saved", preview_id=doc_ref.id, count=len(trends))
+            return doc_ref.id
+        except Exception as e:
+            log_error("TREND_PREVIEW_SAVE_ERROR", "Failed to save trend preview", error=e)
+            return ""
+
+    def get_trend_from_preview(self, preview_id: str, index: int) -> dict:
+        """preview_idとインデックスからトレンド1件取得（30分TTL検証付き）"""
+        try:
+            doc = self.db.collection('trend_previews').document(preview_id).get()
+            if not doc.exists:
+                log_event("TREND_PREVIEW_NOT_FOUND", "Preview not found", preview_id=preview_id)
+                return {}
+
+            data = doc.to_dict()
+
+            # TTL検証（30分）
+            created_at = data.get('created_at')
+            if created_at:
+                from datetime import datetime, timezone, timedelta
+                now = datetime.now(timezone.utc)
+                if now - created_at > timedelta(minutes=30):
+                    log_event("TREND_PREVIEW_EXPIRED", "Preview expired", preview_id=preview_id)
+                    return {"expired": True}
+
+            trends = data.get('trends', [])
+            if index < 0 or index >= len(trends):
+                log_event("TREND_PREVIEW_INDEX_ERROR", "Invalid index", preview_id=preview_id, index=index)
+                return {}
+
+            return trends[index]
+        except Exception as e:
+            log_error("TREND_PREVIEW_GET_ERROR", "Failed to get trend from preview", error=e)
+            return {}
+
+    def get_all_trends_from_preview(self, preview_id: str) -> list:
+        """preview_idから全トレンドを取得（30分TTL検証付き）"""
+        try:
+            doc = self.db.collection('trend_previews').document(preview_id).get()
+            if not doc.exists:
+                log_event("TREND_PREVIEW_NOT_FOUND", "Preview not found", preview_id=preview_id)
+                return []
+
+            data = doc.to_dict()
+
+            # TTL検証（30分）
+            created_at = data.get('created_at')
+            if created_at:
+                from datetime import datetime, timezone, timedelta
+                now = datetime.now(timezone.utc)
+                if now - created_at > timedelta(minutes=30):
+                    log_event("TREND_PREVIEW_EXPIRED", "Preview expired", preview_id=preview_id)
+                    return [{"expired": True}]
+
+            return data.get('trends', [])
+        except Exception as e:
+            log_error("TREND_PREVIEW_GET_ALL_ERROR", "Failed to get all trends from preview", error=e)
+            return []
+
+    def cleanup_old_previews(self, minutes: int = 60) -> int:
+        """古いプレビューデータを削除"""
+        try:
+            from datetime import timedelta, datetime, timezone
+            cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+            docs = self.db.collection('trend_previews') \
+                .where('created_at', '<', cutoff) \
+                .stream()
+            deleted = 0
+            for doc in docs:
+                doc.reference.delete()
+                deleted += 1
+            if deleted > 0:
+                log_event("TREND_PREVIEW_CLEANUP", f"Cleaned up {deleted} old previews")
+            return deleted
+        except Exception as e:
+            log_error("TREND_PREVIEW_CLEANUP_ERROR", "Failed to cleanup old previews", error=e)
+            return 0

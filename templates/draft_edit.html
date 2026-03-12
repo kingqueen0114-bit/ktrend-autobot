@@ -533,6 +533,9 @@
                         (Sanity)</button>
                     <button type="submit" class="submit-btn" style="background: #0277bd; margin-top: 10px;"
                         name="action_type" value="save_draft">💾 下書きとして保存する</button>
+                    <button type="submit" class="submit-btn" style="background: #f44336; margin-top: 10px;"
+                        name="action_type" value="delete"
+                        onclick="return confirm('本当にこの記事を削除しますか？\n（公開済みの場合は、サイトからも削除されます）');">🗑️ 記事を削除する</button>
                     <p style="text-align: center; color: #888; font-size: 13px; margin: 10px 0 0;">チェックした項目のみ公開・保存されます
                     </p>
                 </div>

@@ -215,6 +215,173 @@ class Notifier:
         import random
         return random.choice(fallback_images)
 
+    def send_trend_preview(self, trends: list, preview_id: str) -> bool:
+        """トレンドプレビューをCarousel Flex Messageで送信"""
+        import random
+        from urllib.parse import urlparse
+
+        category_emojis = {
+            'artist': '🎤', 'beauty': '💄', 'fashion': '👗',
+            'food': '🍜', 'travel': '✈️', 'event': '🎉',
+            'drama': '📺', 'other': '📰', 'trend': '🔥'
+        }
+
+        bubbles = []
+        for idx, trend in enumerate(trends[:10]):  # Carousel最大10バブル
+            title = trend.get('title', '不明')[:40]
+            snippet = trend.get('snippet', '')[:80]
+            category = trend.get('category', 'trend')
+            emoji = category_emojis.get(category, '📰')
+            image_url = self._validate_image_url(trend.get('image_url', ''))
+            link = trend.get('link', '')
+
+            # ソースドメイン表示
+            try:
+                domain = urlparse(link).netloc if link else ''
+            except Exception:
+                domain = ''
+
+            # Postbackデータ: 300バイト制限に注意
+            postback_data = f"action=gen_from_preview&idx={idx}&pid={preview_id}"
+
+            # body contents
+            body_contents = [
+                {
+                    "type": "text",
+                    "text": f"{emoji} {category.upper()}",
+                    "size": "xs",
+                    "color": "#0277BD",
+                    "weight": "bold"
+                },
+                {
+                    "type": "text",
+                    "text": title,
+                    "weight": "bold",
+                    "size": "sm",
+                    "wrap": True,
+                    "maxLines": 2,
+                    "margin": "sm"
+                },
+                {
+                    "type": "text",
+                    "text": snippet + "..." if snippet else "（詳細なし）",
+                    "size": "xs",
+                    "color": "#888888",
+                    "wrap": True,
+                    "maxLines": 3,
+                    "margin": "sm"
+                },
+            ]
+
+            if domain:
+                body_contents.append({
+                    "type": "text",
+                    "text": f"📎 {domain}",
+                    "size": "xxs",
+                    "color": "#aaaaaa",
+                    "margin": "md"
+                })
+
+            # footer buttons
+            footer_contents = [
+                {
+                    "type": "button",
+                    "style": "primary",
+                    "height": "sm",
+                    "color": "#1DB446",
+                    "action": {
+                        "type": "postback",
+                        "label": "📝 この記事を生成",
+                        "data": postback_data,
+                        "displayText": f"「{title[:20]}」を記事生成します"
+                    }
+                },
+            ]
+
+            if link:
+                footer_contents.append({
+                    "type": "button",
+                    "style": "secondary",
+                    "height": "sm",
+                    "action": {
+                        "type": "uri",
+                        "label": "🔗 ソースを見る",
+                        "uri": link
+                    }
+                })
+
+            bubble = {
+                "type": "bubble",
+                "size": "kilo",
+                "hero": {
+                    "type": "image",
+                    "url": image_url,
+                    "size": "full",
+                    "aspectRatio": "20:13",
+                    "aspectMode": "cover"
+                },
+                "body": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": body_contents
+                },
+                "footer": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "spacing": "sm",
+                    "contents": footer_contents
+                }
+            }
+            bubbles.append(bubble)
+
+        # 「全て生成」バブル（トレンド2件以上の場合）
+        if len(trends) >= 2:
+            gen_all_postback = f"action=gen_all_preview&pid={preview_id}"
+            all_bubble = {
+                "type": "bubble",
+                "size": "kilo",
+                "body": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "justifyContent": "center",
+                    "alignItems": "center",
+                    "contents": [
+                        {"type": "text", "text": "🚀", "size": "3xl", "align": "center"},
+                        {"type": "text", "text": f"全{len(trends)}件を生成", "weight": "bold", "size": "md", "align": "center", "margin": "lg"},
+                        {"type": "text", "text": "すべてのトレンドから\n記事を一括生成します", "size": "xs", "color": "#888888", "align": "center", "wrap": True, "margin": "md"}
+                    ]
+                },
+                "footer": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                        {
+                            "type": "button",
+                            "style": "primary",
+                            "color": "#FF5722",
+                            "action": {
+                                "type": "postback",
+                                "label": f"🚀 全{len(trends)}件を生成",
+                                "data": gen_all_postback,
+                                "displayText": f"全{len(trends)}件のトレンドから記事を生成します"
+                            }
+                        }
+                    ]
+                }
+            }
+            bubbles.append(all_bubble)
+
+        carousel = {
+            "type": "flex",
+            "altText": f"🔥 トレンドプレビュー {len(trends)}件",
+            "contents": {
+                "type": "carousel",
+                "contents": bubbles
+            }
+        }
+
+        return self._send_custom_messages([carousel])
+
     def send_approval_request(self, content: Dict, image_url: str, draft_id: str = None, wp_post_id: int = None, wp_preview_url: str = None, quality_data: Dict = None, additional_images: list = None, slug: str = None):
         """
         Sends a Flex Message with an Approval Button (Postback) to one or multiple users.
