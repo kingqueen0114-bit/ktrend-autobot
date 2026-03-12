@@ -358,6 +358,17 @@ export async function POST(request: NextRequest) {
 
     // Save (update draft)
     if (data) {
+      // Ensure draft exists before patching (published articles have no draft)
+      const existingDraft = await sanityClient.fetch(`*[_id == $draftId][0]{_id}`, {draftId})
+      if (!existingDraft) {
+        // Copy published document to create a draft
+        const published = await sanityClient.fetch(`*[_id == $publishId][0]`, {publishId})
+        if (published) {
+          const {_id, _rev, _updatedAt, _createdAt, ...docData} = published
+          await sanityClient.createIfNotExists({...docData, _id: draftId})
+        }
+      }
+
       const patch = sanityClient.patch(draftId)
 
       if (data.title !== undefined) patch.set({title: data.title})
