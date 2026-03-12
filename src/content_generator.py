@@ -36,7 +36,7 @@ class ContentGenerator:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
                 "temperature": 0.5,
-                "maxOutputTokens": 2000,
+                "maxOutputTokens": 16000,
             }
         }
         
@@ -65,7 +65,7 @@ class ContentGenerator:
             log_event("GROUNDING_SUCCESS", f"Search Grounding retrieved {len(chunks)} sources", source_count=len(chunks))
 
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-        text = "".join(part.get("text", "") for part in parts)
+        text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
         if not text:
             raise ValueError("Empty response text from Gemini API")
             
