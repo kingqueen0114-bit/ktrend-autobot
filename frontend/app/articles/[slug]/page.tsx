@@ -124,7 +124,7 @@ export default async function ArticlePage({ params }: Props) {
     }
   }
 
-  const imageDimensions = article.mainImage?.asset?.metadata?.dimensions
+  const imageDimensions = article.mainImage?.dimensions
   const imageUrl = article.mainImage
     ? optimizedUrl(article.mainImage).width(1200).url()
     : null

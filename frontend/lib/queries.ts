@@ -41,11 +41,7 @@ export const articleBySlugQuery = groq`
     mainImage{
       ...,
       credit,
-      asset->{
-        metadata{
-          dimensions{width, height, aspectRatio}
-        }
-      }
+      "dimensions": asset->metadata.dimensions
     },
     imageCredit,
     publishedAt,
@@ -99,11 +95,7 @@ export const draftArticleQuery = groq`
     mainImage{
       ...,
       credit,
-      asset->{
-        metadata{
-          dimensions{width, height, aspectRatio}
-        }
-      }
+      "dimensions": asset->metadata.dimensions
     },
     imageCredit,
     seo,
